@@ -2,3 +2,11 @@
 	path = sql
 	url = https://github.com/HGNC/pgnc_db_schema.git
 	branch = dev
+[submodule "server"]
+	path = server
+	url = https://github.com/HGNC/pgnc-ext-web-server.git
+	branch = dev
+[submodule "api"]
+	path = api
+	url = https://github.com/HGNC/pgnc-private-api.git
+	branch = dev
