@@ -28,14 +28,17 @@ services:
     build: api/.
     ports:
       - "5500:5000"
+    volumes:
+      - ./api:/usr/src/app
     depends_on:
       - pgncdb
-  nginx:
-    restart: always
-    build: server/.
-    ports:
-      - "8008:80"
-    depends_on:
-      - nodeserver
+    tty: true
+  # nginx:
+  #   restart: always
+  #   build: server/.
+  #   ports:
+  #     - "8008:80"
+  #   depends_on:
+  #     - nodeserver
 volumes:
   pgnc-data:
