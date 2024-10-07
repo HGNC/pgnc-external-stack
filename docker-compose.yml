@@ -1,36 +1,41 @@
 # https://ashwin9798.medium.com/nginx-with-docker-and-node-js-a-beginners-guide-434fe1216b6b
 ---
-version: '3'
 services:
-  solr-dev:
-    image: ghcr.io/hgnc/solr-search:2024-01-31t17.31.36
-    ports:
-      - "8983:8983"
-  pgnc-data-dev:
+  # solr-dev:
+  #   image: ghcr.io/hgnc/solr-search:2024-01-31t17.31.36
+  #   ports:
+  #     - "8983:8983"
+  pgnc-data:
     build: sql/.
-    container_name: pgnc-data-dev
+    container_name: pgnc-data
     volumes:
-      - pgnc-data-dev:/var/lib/postgresql/data
-  pgncdb-dev:
-    image: postgres:16.4
+      - pgnc-data:/var/lib/postgresql
+  pgncdb:
+    image: postgres:17.0
     restart: always
     ports:
       - "54321:5432"
     environment:
-      POSTGRES_USER: pgnc
+      POSTGRES_USER: dbadmin
       POSTGRES_PASSWORD: pgnc
-      POSTGRES_DB: pgnc
+      POSTGRES_DB: postgres
     volumes:
       - ./sql:/docker-entrypoint-initdb.d
-      - pgnc-data-dev:/var/lib/postgresql/data
+      - pgnc-data:/var/lib/postgresql
+    depends_on:
+      - pgnc-data
   nodeserver:
     build: api/.
     ports:
-      - "5000:5000"
+      - "5500:5000"
+    depends_on:
+      - pgncdb
   nginx:
     restart: always
     build: server/.
     ports:
       - "8008:80"
+    depends_on:
+      - nodeserver
 volumes:
-  pgnc-data-dev:
+  pgnc-data:
