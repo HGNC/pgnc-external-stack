@@ -14,5 +14,7 @@ To build the stack as is, you will need to have Docker and Docker Compose instal
 **Please remember to change the DB password in the `sql` `Dockerfile` and then change the DB password in the `docker-compose.yml` file to match.**
 
 ```bash
+git clone --recurse-submodules https://github.com/HGNC/pgnc-external-stack.git
+# make alterations to the sql Dockerfile and docker-compose.yml file
 docker-compose up
 ```
