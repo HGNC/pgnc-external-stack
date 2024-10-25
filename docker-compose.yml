@@ -1,4 +1,3 @@
-# https://ashwin9798.medium.com/nginx-with-docker-and-node-js-a-beginners-guide-434fe1216b6b
 ---
 services:
   # solr-dev:
@@ -17,28 +16,28 @@ services:
       - "54321:5432"
     environment:
       POSTGRES_USER: dbadmin
-      POSTGRES_PASSWORD: pgnc
+      POSTGRES_PASSWORD: <CHANGE DB PASSWORD>
       POSTGRES_DB: postgres
     volumes:
       - ./sql:/docker-entrypoint-initdb.d
       - pgnc-data:/var/lib/postgresql
     depends_on:
       - pgnc-data
-  nodeserver:
-    build: api/.
-    ports:
-      - "5500:5000"
-    volumes:
-      - ./api:/usr/src/app
-    depends_on:
-      - pgncdb
-    tty: true
-  # nginx:
-  #   restart: always
-  #   build: server/.
+  # nodeserver:
+  #   build: api/.
   #   ports:
-  #     - "8008:80"
+  #     - "5500:5000"
+  #     - "3300:3000"
+  #   volumes:
+  #     - ./api:/usr/src/app
   #   depends_on:
-  #     - nodeserver
+  #     - typeormdb
+  #     # - pgncdb
+  #   tty: true
+  nginx:
+    restart: always
+    build: server/.
+    ports:
+      - "8008:80"
 volumes:
   pgnc-data:
