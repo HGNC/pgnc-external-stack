@@ -10,3 +10,6 @@
 # 	path = api
 # 	url = https://github.com/HGNC/pgnc-api.git
 # 	branch = main
+[submodule "api"]
+	path = api
+	url = https://github.com/HGNC/pgnc-api.git
