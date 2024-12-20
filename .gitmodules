@@ -8,5 +8,5 @@
 	branch = dev
 [submodule "api"]
 	path = api
-	url = https://github.com/HGNC/pgnc-private-api.git
-	branch = dev
+	url = https://github.com/HGNC/pgnc-api.git
+	branch = main
