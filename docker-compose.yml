@@ -1,43 +1,32 @@
 ---
 services:
-  # solr-dev:
-  #   image: ghcr.io/hgnc/solr-search:2024-01-31t17.31.36
-  #   ports:
-  #     - "8983:8983"
-  pgnc-data:
-    build: sql/.
-    container_name: pgnc-data
-    volumes:
-      - pgnc-data:/var/lib/postgresql
-  pgncdb:
-    image: postgres:17.0
-    restart: always
-    ports:
-      - "54321:5432"
-    environment:
-      POSTGRES_USER: dbadmin
-      POSTGRES_PASSWORD: <CHANGE DB PASSWORD>
-      POSTGRES_DB: postgres
-    volumes:
-      - ./sql:/docker-entrypoint-initdb.d
-      - pgnc-data:/var/lib/postgresql
-    depends_on:
-      - pgnc-data
-  # nodeserver:
-  #   build: api/.
-  #   ports:
-  #     - "5500:5000"
-  #     - "3300:3000"
-  #   volumes:
-  #     - ./api:/usr/src/app
-  #   depends_on:
-  #     - typeormdb
-  #     # - pgncdb
-  #   tty: true
-  nginx:
-    restart: always
-    build: server/.
-    ports:
-      - "8008:80"
+    solr:
+        build: solr/.
+        ports:
+            - "8983:8983"
+    # pgnc-data:
+    #     build: sql/.
+    #     container_name: pgnc-data
+    #     volumes:
+    #         - pgnc-data:/var/lib/postgresql
+    # pgncdb:
+    #     image: postgres:17.0
+    #     restart: always
+    #     ports:
+    #         - "54321:5432"
+    #     environment:
+    #         POSTGRES_USER: dbadmin
+    #         POSTGRES_PASSWORD: <CHANGE DB PASSWORD>
+    #         POSTGRES_DB: postgres
+    #     volumes:
+    #         - ./sql:/docker-entrypoint-initdb.d
+    #         - pgnc-data:/var/lib/postgresql
+    #     depends_on:
+    #         - pgnc-data
+    # nginx:
+    #     restart: always
+    #     build: server/.
+    #     ports:
+    #         - "8008:80"
 volumes:
-  pgnc-data:
+    pgnc-data:

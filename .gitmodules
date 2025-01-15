@@ -8,3 +8,6 @@
 [submodule "server"]
 	path = server
 	url = https://github.com/HGNC/pgnc-ext-web-server.git
+[submodule "solr"]
+	path = solr
+	url = https://github.com/HGNC/pgnc-solr.git
