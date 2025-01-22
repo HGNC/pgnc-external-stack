@@ -1,32 +1,59 @@
 ---
 services:
+    solr-data:
+        build: solr-data/.
+        container_name: solr-data
+        networks:
+            - pgnc-network
+        volumes:
+            - solr-data:/var/solr/cores
     solr:
         build: solr/.
+        networks:
+            - pgnc-network
         ports:
             - "8983:8983"
-    # pgnc-data:
-    #     build: sql/.
-    #     container_name: pgnc-data
-    #     volumes:
-    #         - pgnc-data:/var/lib/postgresql
-    # pgncdb:
-    #     image: postgres:17.0
-    #     restart: always
-    #     ports:
-    #         - "54321:5432"
-    #     environment:
-    #         POSTGRES_USER: dbadmin
-    #         POSTGRES_PASSWORD: <CHANGE DB PASSWORD>
-    #         POSTGRES_DB: postgres
-    #     volumes:
-    #         - ./sql:/docker-entrypoint-initdb.d
-    #         - pgnc-data:/var/lib/postgresql
-    #     depends_on:
-    #         - pgnc-data
-    # nginx:
-    #     restart: always
-    #     build: server/.
-    #     ports:
-    #         - "8008:80"
+        volumes:
+            - solr-data:/var/solr/cores
+        depends_on:
+            - solr-data
+    pgnc-data:
+        build: sql/.
+        container_name: pgnc-data
+        networks:
+            - pgnc-network
+        volumes:
+            - pgnc-data:/var/lib/postgresql
+    pgncdb:
+        image: postgres:17.0
+        platform: linux/amd64
+        restart: always
+        networks:
+            - pgnc-network
+        ports:
+            - "54321:5432"
+        environment:
+            POSTGRES_USER: pgnc
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: pgnc
+        volumes:
+            - ./sql:/docker-entrypoint-initdb.d
+            - pgnc-data:/var/lib/postgresql
+        depends_on:
+            - pgnc-data
+    nginx:
+        restart: always
+        build: server/.
+        networks:
+            - pgnc-network
+        ports:
+            - "8008:80"
+        depends_on:
+            - solr
+            - pgncdb
+networks:
+    pgnc-network:
+        driver: bridge
 volumes:
     pgnc-data:
+    solr-data:
