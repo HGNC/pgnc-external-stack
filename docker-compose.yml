@@ -18,12 +18,12 @@ services:
         depends_on:
             - solr-data
     pgnc-data:
-        build: sql/.
-        container_name: pgnc-data
+        build: db-data/.
+        container_name: db-data
         networks:
             - pgnc-network
         volumes:
-            - pgnc-data:/var/lib/postgresql
+            - pgnc-data:/var/lib/postgresql/data
     pgncdb:
         image: postgres:17.0
         platform: linux/amd64
@@ -38,8 +38,8 @@ services:
             POSTGRES_PASSWORD: password
             POSTGRES_DB: pgnc
         volumes:
-            - ./sql:/docker-entrypoint-initdb.d
-            - pgnc-data:/var/lib/postgresql
+            - ./db-data:/docker-entrypoint-initdb.d
+            - pgnc-data:/var/lib/postgresql/data
         depends_on:
             - pgnc-data
     api:
@@ -48,7 +48,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "3000:3000"
+            - "3001:3000"
         depends_on:
             - pgncdb
     angular:
@@ -64,7 +64,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "80:80"
+            - "8080:8080"
         depends_on:
             - angular
 networks:

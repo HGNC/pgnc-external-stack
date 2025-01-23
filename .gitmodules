@@ -11,3 +11,7 @@
 [submodule "solr"]
 	path = solr
 	url = https://github.com/HGNC/pgnc-solr.git
+
+[submodule "nginx"]
+	path = nginx
+	url = https://github.com/HGNC/pgnc-ext-nginx.git
