@@ -28,10 +28,11 @@ services:
         image: postgres:17.0
         platform: linux/amd64
         restart: always
+        hostname: pgncdb
         networks:
             - pgnc-network
         ports:
-            - "54321:5432"
+            - "5432:5432"
         environment:
             POSTGRES_USER: pgnc
             POSTGRES_PASSWORD: password
@@ -41,16 +42,31 @@ services:
             - pgnc-data:/var/lib/postgresql
         depends_on:
             - pgnc-data
-    nginx:
+    api:
         restart: always
-        build: server/.
+        build: api/.
         networks:
             - pgnc-network
         ports:
-            - "8008:80"
+            - "3000:3000"
         depends_on:
-            - solr
             - pgncdb
+    angular:
+        restart: always
+        build: angular/.
+        networks:
+            - pgnc-network
+        ports:
+            - "4000:4000"
+    nginx:
+        restart: always
+        build: nginx/.
+        networks:
+            - pgnc-network
+        ports:
+            - "80:80"
+        depends_on:
+            - angular
 networks:
     pgnc-network:
         driver: bridge

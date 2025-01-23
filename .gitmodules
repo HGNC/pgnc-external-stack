@@ -7,7 +7,7 @@
 	url = https://github.com/HGNC/pgnc-api.git
 [submodule "server"]
 	path = angular
-	url = https://github.com/HGNC/pgnc-ext-web-server.git
+	url = https://github.com/HGNC/pgnc-ext-angular.git
 [submodule "solr"]
 	path = solr
 	url = https://github.com/HGNC/pgnc-solr.git
