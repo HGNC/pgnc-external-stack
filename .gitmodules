@@ -1,5 +1,5 @@
 [submodule "sql"]
-	path = sql
+	path = db-data
 	url = https://github.com/HGNC/pgnc_db_schema.git
 	branch = dev
 [submodule "api"]
