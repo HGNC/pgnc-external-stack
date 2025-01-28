@@ -18,3 +18,6 @@
 [submodule "solr-data"]
 	path = solr-data
 	url = https://github.com/HGNC/pgnc-ext-solr-data.git
+[submodule "python"]
+	path = python
+	url = https://github.com/HGNC/pgnc_solr_load.git
