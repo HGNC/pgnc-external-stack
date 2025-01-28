@@ -1,5 +1,20 @@
 ---
 services:
+    python:
+        build: python/.
+        networks:
+            - pgnc-network
+        environment:
+            DB_HOST: pgncdb
+            DB_PORT: 5432
+            DB_NAME: pgnc
+            DB_USER: pgnc
+            DB_PASSWORD: password
+        depends_on:
+            - pgncdb
+            - solr
+        volumes:
+            - ./python/bin:/usr/src/app/bin
     solr-data:
         build: solr-data/.
         container_name: solr-data
