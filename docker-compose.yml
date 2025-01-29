@@ -11,10 +11,10 @@ services:
             DB_USER: pgnc
             DB_PASSWORD: password
         depends_on:
-            - pgncdb
-            - solr
-        volumes:
-            - ./python/bin:/usr/src/app/bin
+            pgncdb:
+                condition: service_healthy
+            solr:
+                condition: service_started
     solr-data:
         build: solr-data/.
         container_name: solr-data
@@ -31,7 +31,8 @@ services:
         volumes:
             - solr-data:/var/solr/cores
         depends_on:
-            - solr-data
+            solr-data:
+                condition: service_started
     pgnc-data:
         build: db-data/.
         container_name: db-data
@@ -40,10 +41,9 @@ services:
         volumes:
             - pgnc-data:/var/lib/postgresql/data
     pgncdb:
-        image: postgres:17.0
-        platform: linux/amd64
+        image: docker.io/library/postgres:17.0
+        container_name: pgncdb
         restart: always
-        hostname: pgncdb
         networks:
             - pgnc-network
         ports:
@@ -56,7 +56,14 @@ services:
             - ./db-data:/docker-entrypoint-initdb.d
             - pgnc-data:/var/lib/postgresql/data
         depends_on:
-            - pgnc-data
+            pgnc-data:
+                condition: service_started
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U pgnc"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
     api:
         restart: always
         build: api/.
@@ -65,7 +72,8 @@ services:
         ports:
             - "3001:3000"
         depends_on:
-            - pgncdb
+            pgncdb:
+                condition: service_healthy
     angular:
         restart: always
         build: angular/.
@@ -73,6 +81,9 @@ services:
             - pgnc-network
         ports:
             - "4000:4000"
+        depends_on:
+            api:
+                condition: service_started
     nginx:
         restart: always
         build: nginx/.
@@ -81,7 +92,10 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-            - angular
+            angular:
+                condition: service_started
+            python:
+                condition: service_completed_successfully
 networks:
     pgnc-network:
         driver: bridge
