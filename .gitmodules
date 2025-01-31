@@ -21,3 +21,6 @@
 [submodule "python"]
 	path = python
 	url = https://github.com/HGNC/pgnc_solr_load.git
+[submodule "solr-client"]
+	path = solr-client
+	url = https://github.com/HGNC/pgnc-solr-client.git

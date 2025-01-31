@@ -1,6 +1,9 @@
 ---
 services:
     python:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         build: python/.
         networks:
             - pgnc-network
@@ -15,6 +18,19 @@ services:
                 condition: service_healthy
             solr:
                 condition: service_started
+    solr-client:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
+        restart: always
+        build: solr-client/.
+        networks:
+            - pgnc-network
+        depends_on:
+            solr:
+                condition: service_started
+            python:
+                condition: service_completed_successfully
     solr-data:
         build: solr-data/.
         container_name: solr-data
@@ -23,6 +39,9 @@ services:
         volumes:
             - solr-data:/var/solr/cores
     solr:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         build: solr/.
         networks:
             - pgnc-network
@@ -41,6 +60,9 @@ services:
         volumes:
             - pgnc-data:/var/lib/postgresql/data
     pgncdb:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         image: docker.io/library/postgres:17.0
         container_name: pgncdb
         restart: always
@@ -65,6 +87,9 @@ services:
             retries: 5
             start_period: 10s
     api:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         restart: always
         build: api/.
         networks:
@@ -76,6 +101,9 @@ services:
                 condition: service_healthy
     angular:
         restart: always
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         build: angular/.
         networks:
             - pgnc-network
@@ -85,6 +113,9 @@ services:
             api:
                 condition: service_started
     nginx:
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         restart: always
         build: nginx/.
         networks:
@@ -94,8 +125,10 @@ services:
         depends_on:
             angular:
                 condition: service_started
-            python:
-                condition: service_completed_successfully
+            solr-client:
+                condition: service_started
+            api:
+                condition: service_started
 networks:
     pgnc-network:
         driver: bridge
