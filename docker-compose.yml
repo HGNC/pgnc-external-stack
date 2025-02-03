@@ -13,6 +13,7 @@ services:
             DB_NAME: pgnc
             DB_USER: pgnc
             DB_PASSWORD: password
+        restart: "no"
         depends_on:
             pgncdb:
                 condition: service_healthy
@@ -26,14 +27,17 @@ services:
         build: solr-client/.
         networks:
             - pgnc-network
+        ports:
+            - "3000:3000"
         depends_on:
             solr:
-                condition: service_started
+                condition: service_healthy
             python:
                 condition: service_completed_successfully
     solr-data:
         build: solr-data/.
         container_name: solr-data
+        restart: "no"
         networks:
             - pgnc-network
         volumes:
@@ -49,12 +53,25 @@ services:
             - "8983:8983"
         volumes:
             - solr-data:/var/solr/cores
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "curl",
+                    "-f",
+                    "http://localhost:8983/solr/pgnc/select?q=*:*",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
         depends_on:
             solr-data:
                 condition: service_started
     pgnc-data:
         build: db-data/.
         container_name: db-data
+        restart: "no"
         networks:
             - pgnc-network
         volumes:
