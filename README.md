@@ -30,6 +30,11 @@ podman compose up -d
 
 The site should be available at <http://localhost:8080>
 
+## Testing
+
+There are no tests currently, however, if tests were to be created in future, use Jest rather than Karma
+as karma is no longer supported and Jest will replace karma in the near future within Angular.
+
 ## Contributing
 
 1. Fork the project
