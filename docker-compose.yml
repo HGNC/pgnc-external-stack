@@ -18,7 +18,7 @@ services:
             pgncdb:
                 condition: service_healthy
             solr:
-                condition: service_started
+                condition: service_healthy
     solr-client:
         dns:
             - 8.8.8.8
