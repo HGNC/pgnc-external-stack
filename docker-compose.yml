@@ -144,7 +144,12 @@ services:
         dns:
             - 8.8.8.8
             - 8.8.4.4
-        build: angular/.
+        build:
+            context: angular/.
+            dockerfile: Dockerfile
+            args:
+                - API_USER=${API_USER}
+                - API_PASSWORD=${API_PASSWORD}
         networks:
             - pgnc-network
         ports:
