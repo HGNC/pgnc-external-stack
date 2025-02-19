@@ -28,7 +28,34 @@ docker compose up -d
 podman compose up -d
 ```
 
+Or use the shell script provided if using a mac or linux machine
+
+```bash
+git clone https://github.com/HGNC/pgnc-external-stack.git;
+cd pgnc-external-stack;
+./total-refresh.sh --new --container-tool <podman | docker>
+```
+
 The site should be available at <http://localhost:8080>
+
+## Refreshing the code from the github repo
+
+Use the **total-refresh.sh** shell script if you are running on a mac or linux.
+
+```bash
+./total-refresh.sh --container-tool <podman | docker>
+```
+
+On windows you need to do the following:
+
+```bash
+docker compose down
+docker image prune --all --force
+docker volume prune --force
+docker network prune --force
+git pull --recurse-submodules
+docker compose up -d
+```
 
 ## Testing
 
