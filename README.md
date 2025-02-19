@@ -22,6 +22,8 @@ The project relies on several submodules/projects. These are:
 git clone --recursive https://github.com/HGNC/pgnc-external-stack.git;
 # Enter the project directory
 cd pgnc-external-stack;
+# Copy sample.env to .env and change the values for your instances
+cp sample.env .env
 # Run using docker compose
 docker compose up -d
 # Or use podman compose

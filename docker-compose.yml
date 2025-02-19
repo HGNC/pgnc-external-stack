@@ -8,11 +8,11 @@ services:
         networks:
             - pgnc-network
         environment:
-            DB_HOST: pgncdb
-            DB_PORT: 5432
-            DB_NAME: pgnc
-            DB_USER: pgnc
-            DB_PASSWORD: password
+            DB_HOST: ${DB_HOST}
+            DB_PORT: ${DB_PORT}
+            DB_NAME: ${DB_NAME}
+            DB_USER: ${DB_USER}
+            DB_PASSWORD: ${DB_PASSWORD}
         restart: "no"
         volumes:
             - ./python/output:/usr/src/app/output
@@ -31,6 +31,10 @@ services:
             - pgnc-network
         ports:
             - "3000:3000"
+        environment:
+            SOLR_HOST: ${SOLR_HOST}
+            SOLR_PORT: ${SOLR_PORT}
+            SOLR_CORE: ${SOLR_CORE}
         depends_on:
             solr:
                 condition: service_healthy
@@ -90,9 +94,9 @@ services:
         ports:
             - "5432:5432"
         environment:
-            POSTGRES_USER: pgnc
-            POSTGRES_PASSWORD: password
-            POSTGRES_DB: pgnc
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_NAME}
         volumes:
             - ./db-data:/docker-entrypoint-initdb.d
             - pgnc-data:/var/lib/postgresql/data
@@ -115,6 +119,23 @@ services:
             - pgnc-network
         ports:
             - "3001:3000"
+        environment:
+            DB_PORT: ${DB_PORT}
+            DB_USER: ${DB_USER}
+            DB_PASS: ${DB_PASSWORD}
+            DB_HOST: ${DB_HOST}
+            DB_NAME: ${DB_NAME}
+            DB_SYNC: ${DB_SYNC}
+            DB_AUTOLOAD_ENTITIES: ${DB_AUTOLOAD_ENTITIES}
+            PROFILE_API_KEY: ${PROFILE_API_KEY}
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_TOKEN_AUDIENCE: ${JWT_TOKEN_AUDIENCE}
+            JWT_TOKEN_ISSUER: ${JWT_TOKEN_ISSUER}
+            JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
+            JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
+            MAIL_HOST: ${MAIL_HOST}
+            SMTP_USERNAME: ${SMTP_USERNAME}
+            SMTP_PASSWORD: ${SMTP_PASSWORD}
         depends_on:
             pgncdb:
                 condition: service_healthy

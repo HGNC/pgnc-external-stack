@@ -207,7 +207,29 @@ init_submodules(){
     fi
 }
 
+# Function name: check_env_file
+#
+# Description:
+# This function checks if the .env file exists and does not contain '<' or '>'.
+# If the file does not exist or contains the specified characters, the function prints an error message and exits with a status code of 1.
+#
+# Exit codes:
+#   0: .env file exists and does not contain '<' or '>'.
+#   1: .env file does not exist or contains '<' or '>'.
+check_env_file() {
+    if [[ ! -f ".env" ]]; then
+        echo ".env file not found"
+        exit 1
+    fi
+
+    if grep -q '[<>]' ".env"; then
+        echo ".env file contains '<' or '>'"
+        exit 1
+    fi
+}
+
 # Main - see start of file for description
+check_env_file
 parse_arguments "$@"
 if [[ "$new" == true ]]; then
     echo "Create PGNC environment"
