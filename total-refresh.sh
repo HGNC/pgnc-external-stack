@@ -178,7 +178,7 @@ refresh_container_code(){
 #   0: Successfully started containers.
 #   1: Failed to start containers.
 start_containers(){
-    $container_tool compose up -d
+    $container_tool compose --env-file .env up -d
     if [ $? -eq 0 ]; then
         echo "Successfully started containers"
     else
