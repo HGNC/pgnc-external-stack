@@ -56,7 +56,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "8983:8983"
+            - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
         volumes:
             - solr-data:/var/solr/cores
         healthcheck:
@@ -65,7 +65,7 @@ services:
                     "CMD",
                     "curl",
                     "-f",
-                    "http://localhost:8983/solr/pgnc/select?q=*:*",
+                    "http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
                 ]
             interval: 10s
             timeout: 5s
@@ -92,7 +92,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "5432:5432"
+            - "${LOCALHOST_DB_PORT}:${DB_PORT}"
         environment:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -118,11 +118,11 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "3001:3000"
+            - "${LOCALHOST_API_PORT}:${API_PORT}"
         environment:
             DB_PORT: ${DB_PORT}
             DB_USER: ${DB_USER}
-            DB_PASS: ${DB_PASSWORD}
+            DB_PASSWORD: ${DB_PASSWORD}
             DB_HOST: ${DB_HOST}
             DB_NAME: ${DB_NAME}
             DB_SYNC: ${DB_SYNC}
@@ -153,7 +153,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "4000:4000"
+            - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
         depends_on:
             api:
                 condition: service_started
@@ -166,7 +166,7 @@ services:
         networks:
             - pgnc-network
         ports:
-            - "8080:8080"
+            - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
         depends_on:
             angular:
                 condition: service_started

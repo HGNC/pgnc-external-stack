@@ -188,7 +188,7 @@ start_containers(){
 }
 
 # Function name: init_submodules
-# 
+#
 # Description:
 # This function recursively initializes and updates all git submodules defined in the project.
 # It checks the return code of the `git submodule update` command and prints a success or failure message accordingly.
