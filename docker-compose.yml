@@ -1,182 +1,182 @@
 ---
 services:
-    python:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        build: python/.
-        networks:
-            - pgnc-network
-        environment:
-            DB_HOST: ${DB_HOST}
-            DB_PORT: ${DB_PORT}
-            DB_NAME: ${DB_NAME}
-            DB_USER: ${DB_USER}
-            DB_PASSWORD: ${DB_PASSWORD}
-        restart: "no"
-        volumes:
-            - ./python/output:/usr/src/app/output
-        depends_on:
-            pgncdb:
-                condition: service_healthy
-            solr:
-                condition: service_healthy
-    solr-client:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        restart: always
-        build: solr-client/.
-        networks:
-            - pgnc-network
-        ports:
-            - "3000:3000"
-        environment:
-            SOLR_HOST: ${SOLR_HOST}
-            SOLR_PORT: ${SOLR_PORT}
-            SOLR_CORE: ${SOLR_CORE}
-        depends_on:
-            solr:
-                condition: service_healthy
-            python:
-                condition: service_completed_successfully
-    solr-data:
-        build: solr-data/.
-        container_name: solr-data
-        restart: "no"
-        networks:
-            - pgnc-network
-        volumes:
-            - solr-data:/var/solr/cores
-    solr:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        build: solr/.
-        networks:
-            - pgnc-network
-        ports:
-            - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
-        volumes:
-            - solr-data:/var/solr/cores
-        healthcheck:
-            test:
-                [
-                    "CMD",
-                    "curl",
-                    "-f",
-                    "http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
-                ]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-            start_period: 30s
-        depends_on:
-            solr-data:
-                condition: service_started
-    pgnc-data:
-        build: db-data/.
-        container_name: db-data
-        restart: "no"
-        networks:
-            - pgnc-network
-        volumes:
-            - pgnc-data:/var/lib/postgresql/data
-    pgncdb:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        image: docker.io/library/postgres:17.0
-        container_name: pgncdb
-        restart: always
-        networks:
-            - pgnc-network
-        ports:
-            - "${LOCALHOST_DB_PORT}:${DB_PORT}"
-        environment:
-            POSTGRES_USER: ${DB_USER}
-            POSTGRES_PASSWORD: ${DB_PASSWORD}
-            POSTGRES_DB: ${DB_NAME}
-        volumes:
-            - ./db-data:/docker-entrypoint-initdb.d
-            - pgnc-data:/var/lib/postgresql/data
-        depends_on:
-            pgnc-data:
-                condition: service_started
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U pgnc"]
-            interval: 5s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
-    api:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        restart: always
-        build: api/.
-        networks:
-            - pgnc-network
-        ports:
-            - "${LOCALHOST_API_PORT}:${API_PORT}"
-        environment:
-            DB_PORT: ${DB_PORT}
-            DB_USER: ${DB_USER}
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_HOST: ${DB_HOST}
-            DB_NAME: ${DB_NAME}
-            DB_SYNC: ${DB_SYNC}
-            DB_AUTOLOAD_ENTITIES: ${DB_AUTOLOAD_ENTITIES}
-            PROFILE_API_KEY: ${PROFILE_API_KEY}
-            JWT_SECRET: ${JWT_SECRET}
-            JWT_TOKEN_AUDIENCE: ${JWT_TOKEN_AUDIENCE}
-            JWT_TOKEN_ISSUER: ${JWT_TOKEN_ISSUER}
-            JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
-            JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
-            MAIL_HOST: ${MAIL_HOST}
-            SMTP_USERNAME: ${SMTP_USERNAME}
-            SMTP_PASSWORD: ${SMTP_PASSWORD}
-        depends_on:
-            pgncdb:
-                condition: service_healthy
-    angular:
-        restart: always
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        build:
-            context: angular/.
-            dockerfile: Dockerfile
-            args:
-                - API_USER=${API_USER}
-                - API_PASSWORD=${API_PASSWORD}
-        networks:
-            - pgnc-network
-        ports:
-            - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
-        depends_on:
-            api:
-                condition: service_started
-    nginx:
-        dns:
-            - 8.8.8.8
-            - 8.8.4.4
-        restart: always
-        build: nginx/.
-        networks:
-            - pgnc-network
-        ports:
-            - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
-        depends_on:
-            angular:
-                condition: service_started
-            solr-client:
-                condition: service_started
-            api:
-                condition: service_started
+  python:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    build: python/.
+    networks:
+      - pgnc-network
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    restart: "no"
+    volumes:
+      - ./python/output:/usr/src/app/output
+    depends_on:
+      pgncdb:
+        condition: service_healthy
+      solr:
+        condition: service_healthy
+  solr-client:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: always
+    build: solr-client/.
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_SOLR_CLIENT_PORT}:${SOLR_CLIENT_PORT}"
+    environment:
+      SOLR_HOST: ${SOLR_HOST}
+      SOLR_PORT: ${SOLR_PORT}
+      SOLR_CORE: ${SOLR_CORE}
+    depends_on:
+      solr:
+        condition: service_healthy
+      python:
+        condition: service_completed_successfully
+  solr-data:
+    build: solr-data/.
+    container_name: solr-data
+    restart: "no"
+    networks:
+      - pgnc-network
+    volumes:
+      - solr-data:/var/solr/cores
+  solr:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    build: solr/.
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
+    volumes:
+      - solr-data:/var/solr/cores
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      solr-data:
+        condition: service_started
+  pgnc-data:
+    build: db-data/.
+    container_name: db-data
+    restart: "no"
+    networks:
+      - pgnc-network
+    volumes:
+      - pgnc-data:/var/lib/postgresql/data
+  pgncdb:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    image: docker.io/library/postgres:17.0
+    container_name: pgncdb
+    restart: always
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_DB_PORT}:${DB_PORT}"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./db-data:/docker-entrypoint-initdb.d
+      - pgnc-data:/var/lib/postgresql/data
+    depends_on:
+      pgnc-data:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgnc"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  api:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: always
+    build: api/.
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_API_PORT}:${API_PORT}"
+    environment:
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_SYNC: ${DB_SYNC}
+      DB_AUTOLOAD_ENTITIES: ${DB_AUTOLOAD_ENTITIES}
+      PROFILE_API_KEY: ${PROFILE_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_TOKEN_AUDIENCE: ${JWT_TOKEN_AUDIENCE}
+      JWT_TOKEN_ISSUER: ${JWT_TOKEN_ISSUER}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
+      MAIL_HOST: ${MAIL_HOST}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+    depends_on:
+      pgncdb:
+        condition: service_healthy
+  angular:
+    restart: always
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    build:
+      context: angular/.
+      dockerfile: Dockerfile
+      args:
+        - API_USER=${API_USER}
+        - API_PASSWORD=${API_PASSWORD}
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
+    depends_on:
+      api:
+        condition: service_started
+  nginx:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: always
+    build: nginx/.
+    networks:
+      - pgnc-network
+    ports:
+      - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
+    depends_on:
+      angular:
+        condition: service_started
+      solr-client:
+        condition: service_started
+      api:
+        condition: service_started
 networks:
-    pgnc-network:
-        driver: bridge
+  pgnc-network:
+    driver: bridge
 volumes:
-    pgnc-data:
-    solr-data:
+  pgnc-data:
+  solr-data:
