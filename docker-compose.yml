@@ -21,6 +21,16 @@ services:
         condition: service_healthy
       solr:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "[ -f /usr/src/app/output/done.flag ] && exit 0 || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
   solr-client:
     dns:
       - 8.8.8.8
@@ -39,7 +49,21 @@ services:
       solr:
         condition: service_healthy
       python:
-        condition: service_completed_successfully
+        condition: service_healthy
+    volumes:
+      - ./python/output:/usr/src/app/output
+    command: >
+      sh -c "npm run start:prod && touch /usr/src/app/output/done.flag"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "[ -f /usr/src/app/output/done.flag ] && exit 0 || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
   solr-data:
     build: solr-data/.
     container_name: solr-data
@@ -62,7 +86,7 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
+          "CMD-SHELL",
           "curl",
           "-f",
           "http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
@@ -70,10 +94,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
-      solr-data:
-        condition: service_started
+      - solr-data
   pgnc-data:
     build: db-data/.
     container_name: db-data
@@ -100,15 +123,14 @@ services:
     volumes:
       - ./db-data:/docker-entrypoint-initdb.d
       - pgnc-data:/var/lib/postgresql/data
-    depends_on:
-      pgnc-data:
-        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pgnc"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U pgnc -d ${DB_NAME}"]
+      interval: 120s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 180s
+    depends_on:
+      - pgnc-data
   api:
     dns:
       - 8.8.8.8
@@ -139,6 +161,16 @@ services:
     depends_on:
       pgncdb:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -O - -q http://localhost:${API_PORT}/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
   angular:
     restart: always
     dns:
@@ -156,7 +188,17 @@ services:
       - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://localhost:${ANGULAR_PORT} || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
   nginx:
     dns:
       - 8.8.8.8
@@ -169,11 +211,21 @@ services:
       - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
     depends_on:
       angular:
-        condition: service_started
+        condition: service_healthy
       solr-client:
-        condition: service_started
+        condition: service_healthy
       api:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://localhost:${NGINX_PORT}/api/health && http://localhost:${NGINX_PORT}/ses/browse?q=&start=0&rows=1 && http://localhost:${NGINX_PORT} || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 networks:
   pgnc-network:
     driver: bridge
