@@ -40,6 +40,7 @@ services:
       SOLR_HOST: ${SOLR_HOST}
       SOLR_PORT: ${SOLR_PORT}
       SOLR_CORE: ${SOLR_CORE}
+      SOLR_CLIENT_PORT: ${SOLR_CLIENT_PORT}
     depends_on:
       solr:
         condition: service_healthy
@@ -51,7 +52,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q 'http://localhost:3000/browse?q=pgnc:2&start=0&rows=1'",
+          "wget -O /dev/null -q http://localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1 || exit 1",
         ]
       interval: 10s
       timeout: 5s
@@ -69,6 +70,8 @@ services:
     build: solr/.
     networks:
       - pgnc-network
+    environment:
+      SOLR_PORT: ${SOLR_PORT}
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
@@ -77,7 +80,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -f http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
+          "curl --silent --output /dev/null --show-error --fail http://localhost:$${SOLR_PORT}/solr/pgnc/select?q=*:*",
         ]
       interval: 10s
       timeout: 5s
@@ -112,7 +115,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} && psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1 FROM init_completion'",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB && psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1 FROM init_completion'",
         ]
       interval: 120s
       timeout: 5s
@@ -144,6 +147,7 @@ services:
       MAIL_HOST: ${MAIL_HOST}
       SMTP_USERNAME: ${SMTP_USERNAME}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
+      API_PORT: ${API_PORT}
     depends_on:
       pgncdb:
         condition: service_healthy
@@ -151,7 +155,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -O - -q http://localhost:${API_PORT}/health || exit 1",
+          "wget -O /dev/null -q http://localhost:$${API_PORT}/health || exit 1",
         ]
       interval: 10s
       timeout: 5s
@@ -169,6 +173,8 @@ services:
       - pgnc-network
     ports:
       - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
+    environment:
+      ANGULAR_PORT: ${ANGULAR_PORT}
     depends_on:
       api:
         condition: service_healthy
@@ -176,7 +182,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://localhost:${ANGULAR_PORT} || exit 1",
+          "wget -O /dev/null -q http://localhost:$${ANGULAR_PORT} || exit 1",
         ]
       interval: 10s
       timeout: 5s
@@ -189,6 +195,8 @@ services:
       - pgnc-network
     ports:
       - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
+    environment:
+      NGINX_PORT: ${NGINX_PORT}
     depends_on:
       angular:
         condition: service_healthy
@@ -200,7 +208,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://localhost:${NGINX_PORT}/api/health && wget --spider -q http://localhost:${NGINX_PORT}/ses/browse?q=&start=0&rows=1 && wget --spider -q http://localhost:${NGINX_PORT} || exit 1",
+          "wget -O /dev/null -q http://0.0.0.0:$${NGINX_PORT}/api/health && wget -O /dev/null -q http://0.0.0.0:$${NGINX_PORT}/ses/browse?q=&start=0&rows=1 && wget -O /dev/null -q http://0.0.0.0:$${NGINX_PORT} || exit 1",
         ]
       interval: 10s
       timeout: 5s
