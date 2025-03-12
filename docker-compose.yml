@@ -19,16 +19,6 @@ services:
         condition: service_healthy
       solr:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "for i in $(seq 1 10); do if [ -f /usr/src/app/output/done.flag ]; then exit 0; fi; sleep 1; done; exit 1",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
   solr-client:
     restart: on-failure
     build: solr-client/.
