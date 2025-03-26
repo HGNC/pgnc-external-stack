@@ -178,6 +178,29 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+  certbot:
+    build:
+      context: certbot/.
+      dockerfile: Dockerfile
+    container_name: certbot
+    volumes:
+      - ./certbot/auth-hook.sh:/auth-hook.sh:ro
+      - ./certbot/cleanup-hook.sh:/cleanup-hook.sh:ro
+      - ./certbot/gcp-key.json:/gcp-key.json:ro
+      - certbot-etc:/etc/letsencrypt/:rw
+    command:
+      - "certonly"  # Each argument as a separate string
+      - "--manual"
+      - "--preferred-challenges=dns"
+      - "--manual-auth-hook=/auth-hook.sh"
+      - "--manual-cleanup-hook=/cleanup-hook.sh"
+      - "--email=kag56@cam.ac.uk"
+      - "--agree-tos"
+      - "--non-interactive"
+      - "-d"
+      - "plant.genenames.org"
+      - "-d"
+      - "pgnc.genenames.org"
   nginx:
     restart: always
     build: nginx/.
@@ -185,8 +208,12 @@ services:
       - pgnc-network
     ports:
       - "${LOCALHOST_NGINX_PORT}:${NGINX_PORT}"
+      - "${LOCALHOST_NGINX_SSL_PORT}:${NGINX_SSL_PORT}"
     environment:
       NGINX_PORT: ${NGINX_PORT}
+      NGINX_SSL_PORT: ${NGINX_SSL_PORT}
+    volumes:
+      - certbot-etc:/etc/letsencrypt:ro
     depends_on:
       angular:
         condition: service_healthy
@@ -210,3 +237,4 @@ networks:
 volumes:
   pgnc-data:
   solr-data:
+  certbot-etc:

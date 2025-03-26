@@ -24,3 +24,6 @@
 [submodule "solr-client"]
 	path = solr-client
 	url = https://github.com/HGNC/pgnc-solr-client.git
+[submodule "certbot"]
+	path = certbot
+	url = https://github.com/HGNC/pgnc-certbot.git
