@@ -53,7 +53,7 @@ Do the above first and then run the following commands:
 
 ```BASH
 docker compose build certbot;
-docker compose run certbot;
+docker compose run --rm certbot;
 ```
 
 Please ignore any errors that look like the one below as they are not errors:
