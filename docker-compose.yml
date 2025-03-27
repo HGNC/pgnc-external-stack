@@ -183,18 +183,21 @@ services:
       context: certbot/.
       dockerfile: Dockerfile
     container_name: certbot
+    profiles: ["ssl"]
     volumes:
       - ./certbot/auth-hook.sh:/auth-hook.sh:ro
       - ./certbot/cleanup-hook.sh:/cleanup-hook.sh:ro
       - ./certbot/gcp-key.json:/gcp-key.json:ro
       - certbot-etc:/etc/letsencrypt/:rw
+    environment:
+      MY_EMAIL: ${MY_EMAIL}
     command:
       - "certonly"  # Each argument as a separate string
       - "--manual"
       - "--preferred-challenges=dns"
       - "--manual-auth-hook=/auth-hook.sh"
       - "--manual-cleanup-hook=/cleanup-hook.sh"
-      - "--email=kag56@cam.ac.uk"
+      - "--email=${MY_EMAIL}"
       - "--agree-tos"
       - "--non-interactive"
       - "-d"
