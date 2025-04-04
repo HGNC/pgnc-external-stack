@@ -57,7 +57,10 @@ services:
     volumes:
       - solr-data:/var/solr/cores
   solr:
-    build: solr/.
+    build:
+      context: solr/.
+      shm_size: 256m
+    shm_size: 256m
     networks:
       - pgnc-network
     environment:
