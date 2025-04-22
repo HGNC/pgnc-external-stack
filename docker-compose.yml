@@ -10,10 +10,13 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      PGPASSWORD: ${DB_PASSWORD}
     restart: "no"
     volumes:
       - ./python/output:/usr/src/app/output
-      - ./python/bin/data-load:/usr/src/app/bin/data-load
+      - ./python/input:/usr/src/app/input
+      - ./python/bin:/usr/src/app/bin
+      - ./db-data/docker-entrypoint-initdb.d:/usr/src/app/db-data
     depends_on:
       pgncdb:
         condition: service_healthy
@@ -102,7 +105,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - ./db-data:/docker-entrypoint-initdb.d
+      - ./db-data/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - pgnc-data:/var/lib/postgresql/data
     healthcheck:
       test:
