@@ -47,7 +47,84 @@ The project relies on several microservices/components organized as Docker conta
 
 ## Quick Start
 
-### Method 1: Manual Setup
+### Method 1: Automated Setup (Recommended)
+
+The `total-refresh.sh` script provides automated environment setup and management for the PGNC stack. This is the recommended approach for both new installations and regular maintenance.
+
+#### New Environment Setup
+
+```bash
+# Clone the repository
+git clone --recursive https://github.com/HGNC/pgnc-external-stack.git
+cd pgnc-external-stack
+
+# Configure environment variables
+cp sample.env .env
+# Edit .env with your specific configuration
+
+# Set up new environment with Docker
+./total-refresh.sh --new --container-tool docker
+
+# Or with Podman
+./total-refresh.sh --new --container-tool podman
+```
+
+#### Environment Refresh/Update
+
+```bash
+# Refresh existing environment (pulls latest code and rebuilds)
+./total-refresh.sh --container-tool docker
+
+# Refresh with SSL certificate generation
+./total-refresh.sh --container-tool docker --ssl
+
+# Clean refresh (removes all volumes - destroys data!)
+./total-refresh.sh --container-tool docker --clean-volumes
+```
+
+#### Script Features
+
+- **Automated Dependency Checking**: Validates Docker/Podman, Git, and jq installation
+- **Environment Validation**: Checks `.env` file configuration and required variables
+- **Submodule Management**: Handles Git submodule initialization and updates with fallback strategies
+- **Service Orchestration**: Manages proper startup sequence and health monitoring
+- **SSL Support**: Optional Let's Encrypt certificate generation with Certbot
+- **Resource Cleanup**: Intelligent cleanup of unused containers, images, and optionally volumes
+- **Health Monitoring**: Waits for all services to reach healthy state (up to 10 minutes)
+- **Status Reporting**: Displays service status and access URLs upon completion
+
+#### Script Options
+
+| Option | Description |
+|--------|-------------|
+| `--new` | Set up a new environment from scratch |
+| `--container-tool TOOL` | Container tool to use (`docker` or `podman`) **[Required]** |
+| `--ssl` | Enable SSL certificate generation with Certbot |
+| `--clean-volumes` | Remove all volumes during cleanup ⚠️ **Destroys all data** |
+| `--verbose` | Enable verbose output for debugging |
+| `--help` | Show detailed help information |
+
+#### Prerequisites for Script
+
+- **Container Runtime**: Docker or Podman with Compose plugin
+- **Git**: For repository and submodule management
+- **jq**: For JSON parsing of container status
+  ```bash
+  # macOS
+  brew install jq
+  
+  # Ubuntu/Debian
+  sudo apt-get install jq
+  
+  # CentOS/RHEL
+  sudo yum install jq
+  ```
+- **Environment File**: Valid `.env` file (copy from `sample.env`)
+- **SSL (Optional)**: Google Cloud credentials in `certbot/gcp-key.json`
+
+### Method 2: Manual Setup
+
+For users who prefer manual control or are on Windows:
 
 ```bash
 # Clone the repository with all submodules
@@ -65,15 +142,6 @@ docker compose up -d
 
 # Or using Podman
 podman compose up -d
-```
-
-### Method 2: Automated Setup (macOS/Linux)
-
-```bash
-# Clone and setup everything in one command
-git clone https://github.com/HGNC/pgnc-external-stack.git
-cd pgnc-external-stack
-./total-refresh.sh --new --container-tool <docker|podman>
 ```
 
 ### Accessing the Application
@@ -106,14 +174,95 @@ Hook '--manual-cleanup-hook' for plant.genenames.org ran with error output:
 
 ## Development & Maintenance
 
-### Updating from GitHub
+### Using the total-refresh.sh Script (Recommended)
 
-**macOS/Linux (Recommended)**:
+The automated script handles most maintenance tasks:
+
 ```bash
-./total-refresh.sh --container-tool <docker|podman>
+# Standard refresh (updates code, rebuilds containers)
+./total-refresh.sh --container-tool docker
+
+# Refresh with SSL certificate renewal
+./total-refresh.sh --container-tool docker --ssl
+
+# Deep clean refresh (removes all data volumes)
+./total-refresh.sh --container-tool docker --clean-volumes
+
+# Verbose output for troubleshooting
+./total-refresh.sh --container-tool docker --verbose
 ```
 
-**Windows/Manual**:
+#### What the Script Does
+
+**For New Environments (`--new` flag)**:
+1. Validates system prerequisites (Docker/Podman, Git, jq)
+2. Checks environment configuration (`.env` file)
+3. Initializes Git submodules from scratch
+4. Builds all container images with fresh cache
+5. Starts services in proper dependency order
+6. Monitors service health until all are ready
+7. Optionally generates SSL certificates
+8. Displays status and access URLs
+
+**For Environment Refresh (default)**:
+1. Stops all running services gracefully
+2. Cleans up unused containers, images, and networks
+3. Optionally removes data volumes (with `--clean-volumes`)
+4. Updates Git submodules with fallback strategies
+5. Rebuilds all container images
+6. Restarts services with health monitoring
+7. Optionally renews SSL certificates
+8. Reports final status
+
+#### Service Health Monitoring
+
+The script monitors different service types appropriately:
+- **Long-running services** (database, API, frontend, Solr): Must reach "healthy" status
+- **Task services** (Python data loader): Must exit with code 0
+- **Nginx**: Health depends on SSL configuration
+
+Timeout: 10 minutes with progress updates every 30 seconds.
+
+#### Troubleshooting with the Script
+
+```bash
+# Check what the script requires
+./total-refresh.sh --help
+
+# Run with verbose output
+./total-refresh.sh --container-tool docker --verbose
+
+# If services fail to start, check logs
+docker compose logs -f
+
+# For submodule issues, the script provides manual commands
+git submodule status
+git submodule deinit --all -f
+git submodule update --init --recursive
+```
+
+#### Script Error Handling
+
+The script uses `set -euo pipefail` for strict error handling:
+- **Exit Code 0**: Successful completion
+- **Exit Code 1**: Error occurred (invalid arguments, missing dependencies, setup failure)
+
+Common error scenarios and solutions:
+- **Missing container tool**: Install Docker or Podman with Compose plugin
+- **Missing jq**: Install jq for JSON parsing (`brew install jq` on macOS)
+- **Invalid .env**: Copy `sample.env` to `.env` and configure all required variables
+- **Submodule failures**: Script provides fallback strategies and manual recovery commands
+- **Service health timeouts**: Check container logs for specific service errors
+
+The script provides colored output:
+- 🔵 **Blue [INFO]**: General information
+- 🟢 **Green [SUCCESS]**: Successful operations
+- 🟡 **Yellow [WARNING]**: Non-critical issues
+- 🔴 **Red [ERROR]**: Critical failures
+
+### Manual Maintenance (Alternative)
+
+For users who prefer manual control:
 ```bash
 # Stop all services
 docker compose down
