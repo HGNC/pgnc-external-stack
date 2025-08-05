@@ -41,6 +41,7 @@ CONTAINER_TOOL=""        # Required: Container tool to use (docker/podman)
 ENABLE_SSL=false         # Flag: Enable SSL certificate generation with Certbot
 CLEAN_VOLUMES=false      # Flag: Remove volumes during cleanup (destroys data)
 VERBOSE=false            # Flag: Enable verbose output (currently unused)
+RENEW_CERTS=false        # Flag: Renew SSL certificates only (no full refresh)
 
 # Colors for output formatting
 readonly RED='\033[0;31m'      # Error messages
@@ -102,6 +103,7 @@ OPTIONS:
     --new                   Set up a new PGNC environment from scratch
     --container-tool TOOL   Container tool to use (docker or podman) [REQUIRED]
     --ssl                   Enable SSL certificate generation with Certbot
+    --renew-certs          Renew SSL certificates only (no full refresh)
     --clean-volumes         Remove all volumes during cleanup (WARNING: destroys data)
     --verbose              Enable verbose output
     --help                 Show this help message
@@ -112,6 +114,9 @@ EXAMPLES:
 
     # Refresh existing environment with SSL enabled
     $(basename "$0") --container-tool docker --ssl
+
+    # Renew SSL certificates only (for cron jobs)
+    $(basename "$0") --container-tool docker --renew-certs
 
     # Clean refresh with volume removal (destroys all data)
     $(basename "$0") --container-tool docker --clean-volumes
@@ -170,6 +175,10 @@ parse_arguments() {
                 ENABLE_SSL=true
                 shift
                 ;;
+            --renew-certs)
+                RENEW_CERTS=true
+                shift
+                ;;
             --clean-volumes)
                 CLEAN_VOLUMES=true
                 shift
@@ -211,6 +220,18 @@ parse_arguments() {
     if ! $CONTAINER_TOOL compose version &> /dev/null; then
         log_error "$CONTAINER_TOOL compose plugin is not available"
         exit 1
+    fi
+
+    # Validate certificate renewal options
+    if [[ "$RENEW_CERTS" == true ]]; then
+        if [[ "$NEW_ENVIRONMENT" == true ]]; then
+            log_error "--renew-certs cannot be used with --new"
+            exit 1
+        fi
+        if [[ "$CLEAN_VOLUMES" == true ]]; then
+            log_error "--renew-certs cannot be used with --clean-volumes"
+            exit 1
+        fi
     fi
 }
 
@@ -655,6 +676,59 @@ run_certbot() {
     fi
 }
 
+# Function: renew_certificates
+# Description: Renew SSL certificates without full service restart
+# Prerequisites:
+#   - Environment must be already set up and running
+#   - certbot/gcp-key.json must exist for Google Cloud DNS validation
+#   - Nginx service must be running
+# Operations:
+#   - Checks if certificates exist and are due for renewal
+#   - Runs certbot renewal process using DNS challenge
+#   - Reloads nginx configuration to use new certificates
+#   - Provides detailed logging of renewal process
+# Globals:
+#   CONTAINER_TOOL: Container tool to use for renewal operations
+# Exit codes:
+#   0: Certificate renewal successful or not needed
+#   1: Required files missing, renewal failed, or nginx reload failed
+renew_certificates() {
+    log_info "Starting SSL certificate renewal process..."
+    
+    # Check if required files exist
+    if [[ ! -f "certbot/gcp-key.json" ]]; then
+        log_error "certbot/gcp-key.json not found. Required for DNS validation."
+        exit 1
+    fi
+
+    # Check if nginx is running
+    if ! $CONTAINER_TOOL compose ps nginx | grep -q "Up"; then
+        log_error "Nginx service is not running. Cannot proceed with certificate renewal."
+        log_info "Start the full environment first with: $0 --container-tool $CONTAINER_TOOL --ssl"
+        exit 1
+    fi
+
+    # Run certbot renewal (certbot will check if renewal is needed)
+    log_info "Running certbot renewal check..."
+    if $CONTAINER_TOOL compose --profile ssl run --rm certbot renew --quiet; then
+        log_success "Certificate renewal check completed successfully"
+        
+        # Reload nginx to pick up any new certificates
+        log_info "Reloading nginx configuration..."
+        if $CONTAINER_TOOL compose exec nginx nginx -s reload; then
+            log_success "Nginx configuration reloaded successfully"
+        else
+            log_warning "Failed to reload nginx configuration. You may need to restart nginx manually."
+            log_info "To restart nginx: $CONTAINER_TOOL compose restart nginx"
+        fi
+    else
+        log_error "Certificate renewal failed"
+        exit 1
+    fi
+
+    log_success "SSL certificate renewal process completed"
+}
+
 # Function: show_status
 # Description: Display the status of all services and access URLs
 # Output:
@@ -719,6 +793,14 @@ main() {
     parse_arguments "$@"
     check_prerequisites
     validate_env_file
+
+    # Handle certificate renewal mode
+    if [[ "$RENEW_CERTS" == true ]]; then
+        log_info "Running SSL certificate renewal"
+        renew_certificates
+        log_success "SSL certificate renewal completed!"
+        exit 0
+    fi
 
     if [[ "$NEW_ENVIRONMENT" == true ]]; then
         log_info "Setting up NEW PGNC environment"

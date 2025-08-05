@@ -150,6 +150,18 @@ mock_docker() {
             echo "NAME    SERVICE    STATUS    PORTS"
             echo "test    pgncdb     Up        5432/tcp"
             ;;
+        "compose ps nginx")
+            echo "NAME    SERVICE    STATUS    PORTS"
+            echo "nginx   nginx      Up        80/tcp, 443/tcp"
+            ;;
+        "compose --profile ssl run --rm certbot renew --quiet")
+            echo "Certificate renewal completed"
+            return 0
+            ;;
+        "compose exec nginx nginx -s reload")
+            echo "nginx: configuration file test successful"
+            return 0
+            ;;
         *)
             return 0
             ;;
@@ -231,6 +243,7 @@ CONTAINER_TOOL=""
 ENABLE_SSL=false
 CLEAN_VOLUMES=false
 VERBOSE=false
+RENEW_CERTS=false
 
 parse_arguments "$@"
 echo "NEW_ENVIRONMENT=$NEW_ENVIRONMENT"
@@ -238,6 +251,7 @@ echo "CONTAINER_TOOL=$CONTAINER_TOOL"
 echo "ENABLE_SSL=$ENABLE_SSL"
 echo "CLEAN_VOLUMES=$CLEAN_VOLUMES"
 echo "VERBOSE=$VERBOSE"
+echo "RENEW_CERTS=$RENEW_CERTS"
 EOF
     chmod +x test_parse.sh
     
@@ -261,6 +275,20 @@ EOF
     # Test --verbose flag
     output=$(./test_parse.sh --verbose --container-tool docker 2>&1)
     assert_contains "$output" "VERBOSE=true" "Should set VERBOSE to true with --verbose"
+    
+    # Test --renew-certs flag
+    output=$(./test_parse.sh --renew-certs --container-tool docker 2>&1)
+    assert_contains "$output" "RENEW_CERTS=true" "Should set RENEW_CERTS to true with --renew-certs"
+    
+    # Test conflicting arguments: --renew-certs with --new
+    local exit_code=0
+    ./test_parse.sh --renew-certs --new --container-tool docker >/dev/null 2>&1 || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when --renew-certs is used with --new"
+    
+    # Test conflicting arguments: --renew-certs with --clean-volumes
+    exit_code=0
+    ./test_parse.sh --renew-certs --clean-volumes --container-tool docker >/dev/null 2>&1 || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when --renew-certs is used with --clean-volumes"
     
     rm test_parse.sh
 }
@@ -619,6 +647,8 @@ test_show_help() {
     assert_contains "$output" "--container-tool" "Should document container-tool option"
     assert_contains "$output" "--new" "Should document new option"
     assert_contains "$output" "--ssl" "Should document ssl option"
+    assert_contains "$output" "--renew-certs" "Should document renew-certs option"
+    assert_contains "$output" "Renew SSL certificates only" "Should explain renew-certs functionality"
 }
 
 test_script_argument_validation() {
@@ -698,6 +728,103 @@ EOF
     assert_equals "1" "$exit_code" "Should fail when gcp-key.json is missing"
 }
 
+test_certificate_renewal() {
+    echo -e "${TEST_BLUE}Testing certificate renewal functionality...${TEST_NC}"
+    
+    # Create mock certbot directory and credentials
+    mkdir -p certbot
+    cat > certbot/gcp-key.json << 'EOF'
+{
+  "type": "service_account",
+  "project_id": "test"
+}
+EOF
+    
+    # Mock docker command for renewal tests
+    docker() {
+        case "$*" in
+            "compose ps nginx")
+                echo "NAME    SERVICE    STATUS    PORTS"
+                echo "nginx   nginx      Up        80/tcp, 443/tcp"
+                return 0
+                ;;
+            "compose --profile ssl run --rm certbot renew --quiet")
+                echo "Certificate renewal completed"
+                return 0
+                ;;
+            "compose exec nginx nginx -s reload")
+                echo "nginx: configuration file test successful"
+                return 0
+                ;;
+            *)
+                mock_docker "$@"
+                ;;
+        esac
+    }
+    
+    CONTAINER_TOOL="docker"
+    
+    # Test successful certificate renewal
+    local output
+    output=$(renew_certificates 2>&1)
+    assert_contains "$output" "Starting SSL certificate renewal process" "Should start renewal process"
+    assert_contains "$output" "Certificate renewal check completed successfully" "Should complete renewal successfully"
+    assert_contains "$output" "Nginx configuration reloaded successfully" "Should reload nginx configuration"
+    
+    # Test missing gcp-key.json
+    rm certbot/gcp-key.json
+    local exit_code=0
+    (renew_certificates >/dev/null 2>&1) || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when gcp-key.json is missing"
+    
+    # Restore gcp-key.json for next test
+    cat > certbot/gcp-key.json << 'EOF'
+{
+  "type": "service_account",
+  "project_id": "test"
+}
+EOF
+    
+    # Test nginx not running
+    docker() {
+        case "$*" in
+            "compose ps nginx")
+                echo "NAME    SERVICE    STATUS    PORTS"
+                echo "nginx   nginx      Exited    "
+                return 0
+                ;;
+            *)
+                mock_docker "$@"
+                ;;
+        esac
+    }
+    
+    exit_code=0
+    (renew_certificates >/dev/null 2>&1) || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when nginx is not running"
+    
+    # Test certbot renewal failure
+    docker() {
+        case "$*" in
+            "compose ps nginx")
+                echo "NAME    SERVICE    STATUS    PORTS"
+                echo "nginx   nginx      Up        80/tcp, 443/tcp"
+                return 0
+                ;;
+            "compose --profile ssl run --rm certbot renew --quiet")
+                return 1  # Simulate failure
+                ;;
+            *)
+                mock_docker "$@"
+                ;;
+        esac
+    }
+    
+    exit_code=0
+    (renew_certificates >/dev/null 2>&1) || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when certbot renewal fails"
+}
+
 # Main test runner
 run_all_tests() {
     echo -e "${TEST_BLUE}Starting test suite for total-refresh.sh${TEST_NC}"
@@ -717,6 +844,7 @@ run_all_tests() {
     test_show_help
     test_script_argument_validation
     test_ssl_functionality
+    test_certificate_renewal
     
     teardown_test_environment
     

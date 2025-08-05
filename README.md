@@ -78,6 +78,9 @@ cp sample.env .env
 # Refresh with SSL certificate generation
 ./total-refresh.sh --container-tool docker --ssl
 
+# Certificate renewal only (maintenance mode)
+./total-refresh.sh --container-tool docker --renew-certs
+
 # Clean refresh (removes all volumes - destroys data!)
 ./total-refresh.sh --container-tool docker --clean-volumes
 ```
@@ -100,6 +103,7 @@ cp sample.env .env
 | `--new` | Set up a new environment from scratch |
 | `--container-tool TOOL` | Container tool to use (`docker` or `podman`) **[Required]** |
 | `--ssl` | Enable SSL certificate generation with Certbot |
+| `--renew-certs` | Renew SSL certificates only (no full refresh) |
 | `--clean-volumes` | Remove all volumes during cleanup ⚠️ **Destroys all data** |
 | `--verbose` | Enable verbose output for debugging |
 | `--help` | Show detailed help information |
@@ -162,6 +166,31 @@ docker compose build certbot
 docker compose run --rm certbot
 ```
 
+### SSL Certificate Auto-Renewal
+
+Let's Encrypt certificates expire every 90 days. The PGNC stack includes automated renewal functionality to prevent service interruption:
+
+```bash
+# Manual certificate renewal
+./total-refresh.sh --container-tool docker --renew-certs
+
+# Or use the dedicated renewal script
+./cert-renewal.sh docker
+```
+
+**For automated renewal with cron**:
+```bash
+# Edit crontab to run twice daily
+crontab -e
+
+# Add this line (adjust path to your project directory):
+30 2,14 * * * cd /path/to/pgnc-external-stack && ./cert-renewal.sh docker >> /var/log/pgnc-cert-renewal.log 2>&1
+```
+
+For detailed setup instructions, see:
+- 📋 **[SSL Renewal Setup Guide](./SSL_RENEWAL_SETUP.md)** - Complete configuration instructions
+- 📊 **[Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+
 > **Note**: Ignore transaction-related output messages - these are normal operation logs, not errors.
 
 Example of expected (non-error) output:
@@ -184,6 +213,9 @@ The automated script handles most maintenance tasks:
 
 # Refresh with SSL certificate renewal
 ./total-refresh.sh --container-tool docker --ssl
+
+# Certificate renewal only (for cron jobs)
+./total-refresh.sh --container-tool docker --renew-certs
 
 # Deep clean refresh (removes all data volumes)
 ./total-refresh.sh --container-tool docker --clean-volumes
@@ -360,7 +392,10 @@ docker volume prune
 - [Python Components](./python/README.md)
 - [Angular Frontend](./angular/angular.md)  
 - [Testing Guide](./python/TESTING_SUMMARY.md)
+- [Test Suite Updates](./TEST_SUITE_UPDATES.md)
 - [Pylance Configuration](./python/PYLANCE_CONFIG.md)
+- [SSL Certificate Renewal Setup](./SSL_RENEWAL_SETUP.md)
+- [SSL Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)
 
 ## Technology Stack
 
