@@ -61,6 +61,10 @@ cd pgnc-external-stack
 # Configure environment variables
 cp sample.env .env
 # Edit .env with your specific configuration
+# You could also cp a .env into the root of the project
+
+# If using SSL add you gcp-key.json to certbot
+cp ../gcp-key.json certbot/gcp-key.json
 
 # Set up new environment with Docker
 ./total-refresh.sh --new --container-tool docker
