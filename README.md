@@ -63,7 +63,7 @@ cp sample.env .env
 # Edit .env with your specific configuration
 # You could also cp a .env into the root of the project
 
-# If using SSL add you gcp-key.json to certbot
+# If using SSL add your gcp-key.json to certbot
 cp ../gcp-key.json certbot/gcp-key.json
 
 # Set up new environment with Docker
@@ -71,6 +71,9 @@ cp ../gcp-key.json certbot/gcp-key.json
 
 # Or with Podman
 ./total-refresh.sh --new --container-tool podman
+
+# Using SSL then run the above with --ssl
+./total-refresh.sh --new --container-tool docker --ssl
 ```
 
 #### Environment Refresh/Update
