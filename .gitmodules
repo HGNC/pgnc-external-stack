@@ -5,25 +5,36 @@
 [submodule "api"]
 	path = api
 	url = https://github.com/HGNC/pgnc-api.git
+	branch = main
 [submodule "server"]
 	path = angular
 	url = https://github.com/HGNC/pgnc-ext-angular.git
 [submodule "solr"]
 	path = solr
 	url = https://github.com/HGNC/pgnc-solr.git
+	branch = main
 
 [submodule "nginx"]
 	path = nginx
 	url = https://github.com/HGNC/pgnc-ext-nginx.git
+	branch = main
 [submodule "solr-data"]
 	path = solr-data
 	url = https://github.com/HGNC/pgnc-ext-solr-data.git
+	branch = main
 [submodule "python"]
 	path = python
 	url = https://github.com/HGNC/pgnc_solr_load.git
+	branch = main
 [submodule "solr-client"]
 	path = solr-client
 	url = https://github.com/HGNC/pgnc-solr-client.git
+	branch = main
 [submodule "certbot"]
 	path = certbot
 	url = https://github.com/HGNC/pgnc-certbot.git
+	branch = main
+[submodule "angular"]
+	branch = dev
+[submodule "db-data"]
+	branch = dev

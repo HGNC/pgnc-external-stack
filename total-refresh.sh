@@ -341,48 +341,137 @@ validate_env_file() {
 }
 
 # Function: manage_submodules
-# Description: Initialize and update git submodules
+# Description: Initialize and update git submodules to track branches
 # Behavior:
-#   - NEW_ENVIRONMENT=true: Initialize submodules from scratch
-#   - NEW_ENVIRONMENT=false: Update existing submodules with fallback strategies
+#   - NEW_ENVIRONMENT=true: Initialize submodules and configure branch tracking
+#   - NEW_ENVIRONMENT=false: Update submodules to latest branch commits
 # Globals:
 #   NEW_ENVIRONMENT: Determines initialization vs update behavior
 # Exit codes:
 #   0: Submodules successfully managed
 #   1: Submodule operations failed or submodules not properly initialized
 manage_submodules() {
+    # Function to get the target branch for a submodule
+    get_submodule_branch() {
+        case $1 in
+            "angular") echo "dev" ;;
+            "api") echo "main" ;;
+            "certbot") echo "main" ;;
+            "db-data") echo "dev" ;;
+            "nginx") echo "main" ;;
+            "python") echo "main" ;;
+            "solr") echo "main" ;;
+            "solr-client") echo "main" ;;
+            "solr-data") echo "main" ;;
+            *) echo "main" ;;
+        esac
+    }
+    
+    # List of all submodules
+    SUBMODULES=("angular" "api" "certbot" "db-data" "nginx" "python" "solr" "solr-client" "solr-data")
+
     if [[ "$NEW_ENVIRONMENT" == true ]]; then
-        log_info "Initializing git submodules..."
-        git submodule update --init --recursive
-    else
-        log_info "Updating git submodules..."
+        log_info "Initializing git submodules with branch tracking..."
         
-        # First, ensure all submodules have proper remote HEAD references
+        # Initialize submodules
+        git submodule update --init --recursive
+        
+        # Configure each submodule to track its branch
+        log_info "Configuring submodules to track branches..."
+        
+        for submodule in "${SUBMODULES[@]}"; do
+            if [[ -d "$submodule" ]]; then
+                branch=$(get_submodule_branch "$submodule")
+                log_info "Configuring $submodule to track branch: $branch"
+                
+                # Configure the submodule to track the branch in .gitmodules
+                git config -f .gitmodules "submodule.$submodule.branch" "$branch"
+                
+                # Checkout the branch in the submodule
+                cd "$submodule"
+                if git show-ref --verify --quiet "refs/heads/$branch"; then
+                    git checkout "$branch" 2>/dev/null || true
+                else
+                    git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
+                fi
+                git pull origin "$branch" 2>/dev/null || true
+                cd ..
+            fi
+        done
+        
+        # Update parent repository to track the new configuration
+        git add .gitmodules 2>/dev/null || true
+        
+    else
+        log_info "Updating git submodules to latest branch commits..."
+        
+        # First, ensure all submodules are configured for branch tracking
+        log_info "Ensuring submodules are configured for branch tracking..."
+        for submodule in "${SUBMODULES[@]}"; do
+            if [[ -d "$submodule" ]]; then
+                branch=$(get_submodule_branch "$submodule")
+                # Check if branch tracking is configured
+                current_branch=$(git config -f .gitmodules "submodule.$submodule.branch" 2>/dev/null || echo "")
+                if [[ "$current_branch" != "$branch" ]]; then
+                    log_info "Configuring $submodule to track branch: $branch"
+                    git config -f .gitmodules "submodule.$submodule.branch" "$branch"
+                fi
+            fi
+        done
+        
+        # Ensure all submodules have proper remote HEAD references
         git submodule foreach 'git remote set-head origin -a 2>/dev/null || true'
         
-        # Try different update strategies with fallbacks
-        if ! git submodule update --recursive --remote 2>/dev/null; then
-            log_warning "Remote update failed, trying standard update..."
-            if ! git submodule update --recursive 2>/dev/null; then
-                log_warning "Standard update failed, trying manual approach..."
+        # Update submodules to their latest branch commits (not SHA)
+        if ! git submodule update --remote --recursive 2>/dev/null; then
+            log_warning "Remote update failed, trying manual approach..."
+            
+            # Manual update approach - ensure each submodule is on correct branch
+            git submodule foreach '
+                echo "Updating submodule: $name"
+                git fetch origin || true
+                branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo "main")
+                current_branch=$(git branch --show-current)
                 
-                # Manual update approach - fetch and reset to configured branch
-                git submodule foreach '
-                    echo "Updating submodule: $name"
-                    git fetch origin || true
-                    branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo "main")
-                    if git show-ref --verify --quiet refs/remotes/origin/$branch; then
-                        git reset --hard origin/$branch
-                    elif git show-ref --verify --quiet refs/remotes/origin/main; then
-                        git reset --hard origin/main
-                    elif git show-ref --verify --quiet refs/remotes/origin/master; then
-                        git reset --hard origin/master
+                # Switch to correct branch if needed
+                if [[ "$current_branch" != "$branch" ]]; then
+                    echo "Switching $name from $current_branch to $branch"
+                    if git show-ref --verify --quiet "refs/heads/$branch"; then
+                        git checkout "$branch" 2>/dev/null || true
                     else
-                        echo "Warning: Could not find suitable branch for $name"
+                        git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
                     fi
-                '
-            fi
+                fi
+                
+                # Pull latest changes
+                git pull origin "$branch" 2>/dev/null || true
+            '
         fi
+        
+        # Ensure each submodule is on its configured branch
+        git submodule foreach '
+            branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo "main")
+            current_branch=$(git branch --show-current)
+            if [[ "$current_branch" != "$branch" ]]; then
+                echo "Switching $name from $current_branch to $branch"
+                if git show-ref --verify --quiet "refs/heads/$branch"; then
+                    git checkout "$branch" 2>/dev/null || true
+                else
+                    git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
+                fi
+            fi
+            git pull origin "$branch" 2>/dev/null || true
+        '
+    fi
+
+    # Verify submodules are properly configured
+    log_info "Verifying submodule configuration..."
+    git submodule foreach 'echo "Submodule $name: $(git branch --show-current 2>/dev/null || echo "detached") ($(git rev-parse --short HEAD))"'
+
+    # Add .gitmodules if it was modified
+    if ! git diff --quiet .gitmodules 2>/dev/null; then
+        log_info "Branch tracking configuration updated in .gitmodules"
+        git add .gitmodules 2>/dev/null || true
     fi
 
     # Verify submodules are properly initialized
@@ -404,7 +493,7 @@ manage_submodules() {
         fi
     fi
 
-    log_success "Git submodules updated successfully"
+    log_success "Git submodules configured for branch tracking"
 }
 
 # Function: stop_services
