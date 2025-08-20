@@ -51,7 +51,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --user='${SOLR_ADMIN_USER}' --password='${SOLR_ADMIN_PASSWORD}' -O /dev/null -q \"http://localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
+          "wget -O /dev/null -q \"http://localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
         ]
       interval: 10s
       timeout: 5s
