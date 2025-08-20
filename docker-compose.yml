@@ -11,6 +11,10 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       PGPASSWORD: ${DB_PASSWORD}
+      SOLR_USERNAME: ${SOLR_ADMIN_USER}
+      SOLR_PASSWORD: ${SOLR_ADMIN_PASSWORD}
+      SOLR_HOST: ${SOLR_HOST}
+      SOLR_PORT: ${SOLR_PORT}
     restart: "no"
     volumes:
       - ./python/output:/usr/src/app/output
@@ -34,6 +38,8 @@ services:
       SOLR_PORT: ${SOLR_PORT}
       SOLR_CORE: ${SOLR_CORE}
       SOLR_CLIENT_PORT: ${SOLR_CLIENT_PORT}
+      SOLR_USERNAME: ${SOLR_ADMIN_USER}
+      SOLR_PASSWORD: ${SOLR_ADMIN_PASSWORD}
     depends_on:
       solr:
         condition: service_healthy
@@ -45,7 +51,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -O /dev/null -q \"http://localhost:$${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
+          "wget --user='${SOLR_ADMIN_USER}' --password='${SOLR_ADMIN_PASSWORD}' -O /dev/null -q \"http://localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
         ]
       interval: 10s
       timeout: 5s
@@ -68,6 +74,8 @@ services:
       - pgnc-network
     environment:
       SOLR_PORT: ${SOLR_PORT}
+      SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000"
+      SOLR_SECURITY_MANAGER_ENABLED: "false"
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
@@ -76,12 +84,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl --silent --output /dev/null --show-error --fail http://localhost:$${SOLR_PORT}/solr/pgnc/select?q=*:*",
+          "curl -u ***REMOVED_SECRET*** --silent --output /dev/null --show-error --fail http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
         ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 90s  # Increased to allow for security initialization
     depends_on:
       - solr-data
   pgnc-data:
