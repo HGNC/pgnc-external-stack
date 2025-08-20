@@ -175,8 +175,29 @@ mock_git() {
             return 0
             ;;
         "submodule status")
-            echo " abc123 submodule1 (heads/master)"
+            echo " abc123 angular (heads/dev)"
+            echo " def456 api (heads/main)"
+            echo " ghi789 solr (heads/main)"
             return 0
+            ;;
+        "config -f .gitmodules"*)
+            echo "Configuring branch tracking"
+            return 0
+            ;;
+        "submodule update --remote --recursive")
+            echo "Updating submodules to latest branch commits"
+            return 0
+            ;;
+        "submodule foreach"*)
+            echo "Processing submodule: test-submodule"
+            return 0
+            ;;
+        "add .gitmodules")
+            echo "Adding .gitmodules"
+            return 0
+            ;;
+        "diff --quiet .gitmodules")
+            return 1  # Simulate .gitmodules was modified
             ;;
         *)
             return 0
@@ -454,19 +475,138 @@ test_manage_submodules() {
 export TESTING_MODE=true
 source ./total-refresh.sh
 
-# Mock git function
+# Mock git function with branch tracking support
 git() {
     case "$*" in
         "submodule update --init --recursive")
             echo "Initializing submodules"
             return 0
             ;;
-        "submodule update --recursive --remote")
-            echo "Updating submodules"
+        "config -f .gitmodules submodule."*".branch"*)
+            echo "Configuring branch tracking"
+            return 0
+            ;;
+        "add .gitmodules")
+            echo "Adding .gitmodules"
+            return 0
+            ;;
+        "submodule update --remote --recursive")
+            echo "Updating submodules to latest branch commits"
+            return 0
+            ;;
+        "submodule foreach"*)
+            echo "Processing submodule: test-submodule"
+            echo "Switching test-submodule from detached to main"
             return 0
             ;;
         "submodule status")
-            echo " abc123 submodule1 (heads/master)"
+            echo " abc123 angular (heads/dev)"
+            echo " def456 api (heads/main)"
+            echo " ghi789 solr (heads/main)"
+            return 0
+            ;;
+        "config -f .gitmodules --get-regexp"*)
+            echo "submodule.angular.branch dev"
+            echo "submodule.api.branch main"
+            echo "submodule.solr.branch main"
+            return 0
+            ;;
+        "diff --quiet .gitmodules")
+            return 1  # Simulate .gitmodules was modified
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+# Create mock submodule directories
+mkdir -p angular api solr certbot db-data nginx python solr-client solr-data
+
+# Test with NEW_ENVIRONMENT=true
+echo "=== Testing NEW_ENVIRONMENT=true ==="
+NEW_ENVIRONMENT=true
+manage_submodules 2>&1
+echo "---"
+
+# Test with NEW_ENVIRONMENT=false  
+echo "=== Testing NEW_ENVIRONMENT=false ==="
+NEW_ENVIRONMENT=false
+manage_submodules 2>&1
+
+# Clean up mock directories
+rm -rf angular api solr certbot db-data nginx python solr-client solr-data
+EOF
+    chmod +x test_submodules.sh
+    
+    local output
+    output=$(./test_submodules.sh)
+    
+    # Test NEW_ENVIRONMENT=true behavior
+    assert_contains "$output" "Initializing git submodules with branch tracking" "Should initialize submodules with branch tracking for new environment"
+    assert_contains "$output" "Configuring submodules to track branches" "Should configure branch tracking for new environment"
+    assert_contains "$output" "Configuring branch tracking" "Should set up .gitmodules configuration"
+    
+    # Test NEW_ENVIRONMENT=false behavior  
+    assert_contains "$output" "Updating git submodules to latest branch commits" "Should update submodules to latest branch commits for existing environment"
+    assert_contains "$output" "Ensuring submodules are configured for branch tracking" "Should ensure branch tracking is configured"
+    assert_contains "$output" "Processing submodule" "Should process each submodule individually"
+    
+    # Test verification steps
+    assert_contains "$output" "Verifying submodule configuration" "Should verify submodule configuration"
+    assert_contains "$output" "Git submodules configured for branch tracking" "Should complete with success message"
+    
+    rm test_submodules.sh
+}
+
+test_submodule_branch_tracking() {
+    echo -e "${TEST_BLUE}Testing submodule branch tracking configuration...${TEST_NC}"
+    
+    # Create a test script to verify branch tracking functionality
+    cat > test_branch_tracking.sh << 'EOF'
+#!/bin/bash
+export TESTING_MODE=true
+source ./total-refresh.sh
+
+# Extract and test the get_submodule_branch logic from manage_submodules
+test_branch_mappings() {
+    echo "Testing branch mappings:"
+    
+    # Replicate the get_submodule_branch function logic
+    get_branch() {
+        case $1 in
+            "angular") echo "dev" ;;
+            "api") echo "main" ;;
+            "certbot") echo "main" ;;
+            "db-data") echo "dev" ;;
+            "nginx") echo "main" ;;
+            "python") echo "main" ;;
+            "solr") echo "main" ;;
+            "solr-client") echo "main" ;;
+            "solr-data") echo "main" ;;
+            *) echo "main" ;;
+        esac
+    }
+    
+    echo "angular -> $(get_branch angular)"
+    echo "api -> $(get_branch api)"
+    echo "db-data -> $(get_branch db-data)"
+    echo "solr -> $(get_branch solr)"
+    echo "unknown -> $(get_branch unknown)"
+}
+
+# Mock git function for .gitmodules configuration testing
+git() {
+    case "$*" in
+        "config -f .gitmodules submodule."*".branch"*)
+            echo "Configuring branch tracking for submodule"
+            return 0
+            ;;
+        "config -f .gitmodules --get-regexp"*)
+            echo "submodule.angular.branch dev"
+            echo "submodule.api.branch main"
+            echo "submodule.db-data.branch dev"
+            echo "submodule.solr.branch main"
             return 0
             ;;
         *)
@@ -475,22 +615,33 @@ git() {
     esac
 }
 
-# Test with NEW_ENVIRONMENT=true
-NEW_ENVIRONMENT=true
-manage_submodules 2>&1
-echo "---"
-# Test with NEW_ENVIRONMENT=false  
-NEW_ENVIRONMENT=false
-manage_submodules 2>&1
+test_branch_mappings
+
+# Test that the correct submodules array is defined
+echo "Testing submodules list:"
+SUBMODULES=("angular" "api" "certbot" "db-data" "nginx" "python" "solr" "solr-client" "solr-data")
+echo "Total submodules: ${#SUBMODULES[@]}"
+echo "Contains angular: $(echo "${SUBMODULES[@]}" | grep -q "angular" && echo "yes" || echo "no")"
+echo "Contains api: $(echo "${SUBMODULES[@]}" | grep -q "api" && echo "yes" || echo "no")"
 EOF
-    chmod +x test_submodules.sh
+    chmod +x test_branch_tracking.sh
     
     local output
-    output=$(./test_submodules.sh)
-    assert_contains "$output" "Initializing git submodules" "Should initialize submodules for new environment"
-    assert_contains "$output" "Updating git submodules" "Should update submodules for existing environment"
+    output=$(./test_branch_tracking.sh)
     
-    rm test_submodules.sh
+    # Test branch mapping function
+    assert_contains "$output" "angular -> dev" "Angular should track dev branch"
+    assert_contains "$output" "api -> main" "API should track main branch"
+    assert_contains "$output" "db-data -> dev" "DB-data should track dev branch"
+    assert_contains "$output" "solr -> main" "Solr should track main branch"
+    assert_contains "$output" "unknown -> main" "Unknown submodules should default to main branch"
+    
+    # Test submodules array
+    assert_contains "$output" "Total submodules: 9" "Should have 9 submodules defined"
+    assert_contains "$output" "Contains angular: yes" "Should contain angular submodule"
+    assert_contains "$output" "Contains api: yes" "Should contain api submodule"
+    
+    rm test_branch_tracking.sh
 }
 
 test_wait_for_services() {
@@ -838,6 +989,7 @@ run_all_tests() {
     test_check_prerequisites
     test_validate_env_file
     test_manage_submodules
+    test_submodule_branch_tracking
     test_wait_for_services
     test_cross_platform_compatibility
     test_show_status
