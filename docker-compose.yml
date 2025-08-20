@@ -84,7 +84,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -u ***REMOVED_SECRET*** --silent --output /dev/null --show-error --fail http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*",
+          "curl --silent --output /dev/null --show-error --fail http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*"
         ]
       interval: 10s
       timeout: 5s
