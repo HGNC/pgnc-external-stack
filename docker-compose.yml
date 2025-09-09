@@ -76,6 +76,8 @@ services:
       SOLR_PORT: ${SOLR_PORT}
       SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000"
       SOLR_SECURITY_MANAGER_ENABLED: "false"
+      SOLR_ADMIN_USER: ${SOLR_ADMIN_USER}
+      SOLR_ADMIN_PASSWORD: ${SOLR_ADMIN_PASSWORD}
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
@@ -84,7 +86,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl --silent --output /dev/null --show-error --fail http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*"
+          "curl --silent --output /dev/null --show-error --fail --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*"
         ]
       interval: 10s
       timeout: 5s
