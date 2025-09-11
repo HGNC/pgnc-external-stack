@@ -25,7 +25,7 @@ The project relies on several microservices/components organized as Docker conta
 
 ### Search & Indexing
 
-- **[pgnc-solr](https://github.com/HGNC/pgnc-solr)**: Apache Solr search engine for fast gene data retrieval.
+- **[pgnc-solr](https://github.com/HGNC/pgnc-solr)**: Apache Solr search engine for fast gene data retrieval with BasicAuth security enabled.
 - **[pgnc-solr-client](https://github.com/HGNC/pgnc-solr-client)**: Server-side client that provides a secure interface between the frontend and Solr.
 - **[pgnc_solr_load](https://github.com/HGNC/pgnc_solr_load)**: Initial data loading service that populates Solr with indexed gene data from the database.
 - **python/**: Python utilities for data processing and Solr index management, including:
@@ -49,7 +49,7 @@ The project relies on several microservices/components organized as Docker conta
   - Place in the `certbot/` directory for SSL certificate management
 - **Environment Configuration**:
   - `.env` file: Copy `sample.env` to `.env` and configure for your environment
-  - Contains database credentials, API keys, and service configurations
+  - Contains database credentials, API keys, Solr authentication credentials, and service configurations
 
 ## Quick Start
 
