@@ -65,7 +65,7 @@ services:
       - pgnc-network
     environment:
       SOLR_PORT: ${SOLR_PORT}
-      SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000 -Dsolr.security.enabled=true"
+      SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000 -Dsolr.security.enabled=true -Dsolr.config.lib.enabled=true"
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
