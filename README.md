@@ -2,8 +2,11 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Angular](https://img.shields.io/badge/Angular-15+-red.svg)](https://angular.io/)
+[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Angular](https://img.shields.io/badge/Angular-19.1+-red.svg)](https://angular.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.0-blue.svg)](https://www.postgresql.org/)
+[![Apache Solr](https://img.shields.io/badge/Apache%20Solr-8.x-orange.svg)](https://solr.apache.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-10.x-red.svg)](https://nestjs.com/)
 
 ## Overview
 
@@ -16,10 +19,12 @@ The stack is a containerized microservices architecture that provides a complete
 The project relies on several microservices/components organized as Docker containers:
 
 ### Frontend & API
+
 - **[pgnc-ext-angular](https://github.com/HGNC/pgnc-ext-angular)**: Angular frontend application for the website. See [Angular Documentation](./angular/angular.md) for technical details.
 - **[pgnc-api](https://github.com/HGNC/pgnc-api)**: NestJS REST API providing backend services for the website and public API endpoints.
 
 ### Search & Indexing
+
 - **[pgnc-solr](https://github.com/HGNC/pgnc-solr)**: Apache Solr search engine for fast gene data retrieval.
 - **[pgnc-solr-client](https://github.com/HGNC/pgnc-solr-client)**: Server-side client that provides a secure interface between the frontend and Solr.
 - **[pgnc_solr_load](https://github.com/HGNC/pgnc_solr_load)**: Initial data loading service that populates Solr with indexed gene data from the database.
@@ -29,6 +34,7 @@ The project relies on several microservices/components organized as Docker conta
   - Comprehensive test suites
 
 ### Data & Infrastructure  
+
 - **[pgnc_db_schema](https://github.com/HGNC/pgnc_db_schema)**: PostgreSQL database schema and initial data (gzipped).
 - **[pgnc-ext-solr-data](https://github.com/HGNC/pgnc-ext-solr-data)**: Persistent volume for Solr search indices.
 - **[pgnc-ext-nginx](https://github.com/HGNC/pgnc-ext-nginx)**: Reverse proxy and load balancer for external-facing components.
@@ -38,7 +44,7 @@ The project relies on several microservices/components organized as Docker conta
 
 - **Container Runtime**: Docker, Podman, or OrbStack for building and running containers
 - **Git**: For cloning the repository and submodules
-- **Google Cloud Platform Access** (for SSL): 
+- **Google Cloud Platform Access** (for SSL):
   - `gcp-key.json`: Service account key file with Cloud DNS access
   - Place in the `certbot/` directory for SSL certificate management
 - **Environment Configuration**:
@@ -120,16 +126,19 @@ cp ../gcp-key.json certbot/gcp-key.json
 - **Container Runtime**: Docker or Podman with Compose plugin
 - **Git**: For repository and submodule management
 - **jq**: For JSON parsing of container status
+
   ```bash
   # macOS
   brew install jq
   
   # Ubuntu/Debian
   sudo apt-get install jq
+
   
   # CentOS/RHEL
   sudo yum install jq
   ```
+
 - **Environment File**: Valid `.env` file (copy from `sample.env`)
 - **SSL (Optional)**: Google Cloud credentials in `certbot/gcp-key.json`
 
@@ -159,7 +168,7 @@ podman compose up -d
 
 - **Website**: <http://localhost:8080>
 - **API Documentation**: <http://localhost:3000/api>
-- **Solr Admin**: <http://localhost:8983/solr>
+- **Solr Admin**: <http://localhost:8983/solr> (Apache Solr 8.x)
 
 ## SSL/HTTPS Setup
 
@@ -181,26 +190,31 @@ Let's Encrypt certificates expire every 90 days. The PGNC stack includes automat
 # Manual certificate renewal
 ./total-refresh.sh --container-tool docker --renew-certs
 
+
 # Or use the dedicated renewal script
 ./cert-renewal.sh docker
 ```
 
 **For automated renewal with cron**:
+
 ```bash
 # Edit crontab to run twice daily
 crontab -e
+
 
 # Add this line (adjust path to your project directory):
 30 2,14 * * * cd /path/to/pgnc-external-stack && ./cert-renewal.sh docker >> /var/log/pgnc-cert-renewal.log 2>&1
 ```
 
 For detailed setup instructions, see:
+
 - 📋 **[SSL Renewal Setup Guide](./SSL_RENEWAL_SETUP.md)** - Complete configuration instructions
 - 📊 **[Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
 
 > **Note**: Ignore transaction-related output messages - these are normal operation logs, not errors.
 
 Example of expected (non-error) output:
+
 ```
 Hook '--manual-cleanup-hook' for plant.genenames.org ran with error output:
  Transaction started [transaction.yaml].
@@ -227,6 +241,7 @@ The automated script handles most maintenance tasks:
 # Deep clean refresh (removes all data volumes)
 ./total-refresh.sh --container-tool docker --clean-volumes
 
+
 # Verbose output for troubleshooting
 ./total-refresh.sh --container-tool docker --verbose
 ```
@@ -234,7 +249,9 @@ The automated script handles most maintenance tasks:
 #### What the Script Does
 
 **For New Environments (`--new` flag)**:
+
 1. Validates system prerequisites (Docker/Podman, Git, jq)
+
 2. Checks environment configuration (`.env` file)
 3. Initializes Git submodules from scratch
 4. Builds all container images with fresh cache
@@ -244,8 +261,10 @@ The automated script handles most maintenance tasks:
 8. Displays status and access URLs
 
 **For Environment Refresh (default)**:
+
 1. Stops all running services gracefully
 2. Cleans up unused containers, images, and networks
+
 3. Optionally removes data volumes (with `--clean-volumes`)
 4. Updates Git submodules with fallback strategies
 5. Rebuilds all container images
@@ -256,6 +275,7 @@ The automated script handles most maintenance tasks:
 #### Service Health Monitoring
 
 The script monitors different service types appropriately:
+
 - **Long-running services** (database, API, frontend, Solr): Must reach "healthy" status
 - **Task services** (Python data loader): Must exit with code 0
 - **Nginx**: Health depends on SSL configuration
@@ -272,10 +292,12 @@ Timeout: 10 minutes with progress updates every 30 seconds.
 ./total-refresh.sh --container-tool docker --verbose
 
 # If services fail to start, check logs
+
 docker compose logs -f
 
 # For submodule issues, the script provides manual commands
 git submodule status
+
 git submodule deinit --all -f
 git submodule update --init --recursive
 ```
@@ -283,17 +305,21 @@ git submodule update --init --recursive
 #### Script Error Handling
 
 The script uses `set -euo pipefail` for strict error handling:
+
 - **Exit Code 0**: Successful completion
 - **Exit Code 1**: Error occurred (invalid arguments, missing dependencies, setup failure)
 
 Common error scenarios and solutions:
+
 - **Missing container tool**: Install Docker or Podman with Compose plugin
 - **Missing jq**: Install jq for JSON parsing (`brew install jq` on macOS)
+
 - **Invalid .env**: Copy `sample.env` to `.env` and configure all required variables
 - **Submodule failures**: Script provides fallback strategies and manual recovery commands
 - **Service health timeouts**: Check container logs for specific service errors
 
 The script provides colored output:
+
 - 🔵 **Blue [INFO]**: General information
 - 🟢 **Green [SUCCESS]**: Successful operations
 - 🟡 **Yellow [WARNING]**: Non-critical issues
@@ -302,6 +328,7 @@ The script provides colored output:
 ### Manual Maintenance (Alternative)
 
 For users who prefer manual control:
+
 ```bash
 # Stop all services
 docker compose down
@@ -330,11 +357,13 @@ pip install -r requirements.txt
 # Run data loading scripts
 python bin/data-load/main.py
 
+
 # Run data update scripts  
 python bin/data-update/main.py
 
 # Run tests
 pytest tests/
+
 ```
 
 See [python/README.md](./python/README.md) for detailed Python component documentation.
@@ -344,17 +373,20 @@ See [python/README.md](./python/README.md) for detailed Python component documen
 The project includes comprehensive test suites:
 
 ### Python Tests
+
 - **Location**: `python/tests/`
 - **Framework**: pytest with comprehensive coverage
 - **Coverage**: Gene models, data processing, API integrations
 - **Run**: `cd python && pytest tests/ -v`
 
 ### Frontend Tests  
+
 - **Framework**: Jest (replaces deprecated Karma)
 - **Location**: `angular/src/`
 - **Run**: `cd angular && npm test`
 
 ### API Tests
+
 - **Framework**: Jest with NestJS testing utilities
 - **Location**: `api/src/`
 - **Run**: `cd api && npm test`
@@ -367,12 +399,14 @@ We welcome contributions! Please follow these steps:
 
 1. **Fork** the repository
 2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+
 3. **Commit** your changes: `git commit -m 'Add amazing feature'`
 4. **Test** your changes thoroughly
 5. **Push** to your branch: `git push origin feature/amazing-feature`
 6. **Submit** a Pull Request
 
 ### Development Guidelines
+
 - Follow existing code style and conventions
 - Include tests for new functionality
 - Update documentation as needed
@@ -385,6 +419,7 @@ We welcome contributions! Please follow these steps:
 **Port Conflicts**: If you see port binding errors, check that ports 8080, 3000, 8983, 5432 are available.
 
 **Docker Issues**: Try cleaning up Docker resources:
+
 ```bash
 docker system prune -a
 docker volume prune
@@ -406,15 +441,15 @@ docker volume prune
 
 ## Technology Stack
 
-- **Frontend**: Angular 15+, TypeScript, RxJS
-- **Backend**: NestJS, Node.js, TypeScript  
-- **Database**: PostgreSQL
-- **Search**: Apache Solr
+- **Frontend**: Angular 19.1+, TypeScript, RxJS
+- **Backend**: NestJS 10.x, Node.js, TypeScript  
+- **Database**: PostgreSQL 17.0
+- **Search**: Apache Solr 8.x (Lucene 8.5.2)
 - **Containers**: Docker/Podman with Docker Compose
 - **Web Server**: Nginx (reverse proxy)
 - **SSL**: Let's Encrypt with Certbot
-- **Data Processing**: Python 3.8+
-- **Testing**: Jest, pytest
+- **Data Processing**: Python 3.13+
+- **Testing**: Jest, pytest 8.4+
 - **Cloud**: Google Cloud Platform (DNS management)
 
 ## License
