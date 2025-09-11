@@ -37,9 +37,9 @@ services:
       SOLR_HOST: ${SOLR_HOST}
       SOLR_PORT: ${SOLR_PORT}
       SOLR_CORE: ${SOLR_CORE}
-      SOLR_CLIENT_PORT: ${SOLR_CLIENT_PORT}
-      SOLR_USERNAME: ${SOLR_ADMIN_USER}
-      SOLR_PASSWORD: ${SOLR_ADMIN_PASSWORD}
+    
+      SOLR_USERNAME: ${SOLR_CLIENT_USER}
+      SOLR_PASSWORD: ${SOLR_CLIENT_PASSWORD}
     depends_on:
       solr:
         condition: service_healthy
@@ -51,49 +51,32 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -O /dev/null -q \"http://localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
+          "wget -O /dev/null -q \"http://${SOLR_CLIENT_USER}:${SOLR_CLIENT_PASSWORD}@localhost:${SOLR_CLIENT_PORT}/browse?q=pgnc:2&start=0&rows=1\" || exit 1",
         ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-  solr-data:
-    build: solr-data/.
-    container_name: solr-data
-    restart: "no"
-    networks:
-      - pgnc-network
-    volumes:
-      - solr-data:/var/solr/cores
   solr:
     build:
       context: solr/.
-      shm_size: 256m
     shm_size: 256m
     networks:
       - pgnc-network
     environment:
       SOLR_PORT: ${SOLR_PORT}
-      SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000"
-      SOLR_SECURITY_MANAGER_ENABLED: "false"
-      SOLR_ADMIN_USER: ${SOLR_ADMIN_USER}
-      SOLR_ADMIN_PASSWORD: ${SOLR_ADMIN_PASSWORD}
+      SOLR_OPTS: "-Dsolr.autoSoftCommit.maxTime=10000 -Dsolr.security.enabled=true"
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
-      - solr-data:/var/solr/cores
+      # Persist data and cores
+      - ./solr/cores:/var/solr
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl --silent --output /dev/null --show-error --fail --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:${SOLR_PORT}/solr/pgnc/select?q=*:*"
-        ]
+      test: ["CMD-SHELL", "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 90s  # Increased to allow for security initialization
-    depends_on:
-      - solr-data
+      retries: 10
+      start_period: 90s
   pgnc-data:
     build: db-data/.
     container_name: db-data
@@ -255,5 +238,4 @@ networks:
     driver: bridge
 volumes:
   pgnc-data:
-  solr-data:
   certbot-etc:
