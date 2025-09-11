@@ -1,0 +1,8 @@
+{
+    "name": "pgnc-external-stack",
+    "private": true,
+    "scripts": {
+        "lint:md": "npx --yes markdownlint-cli@0.42.0 \"**/*.md\" --ignore-path .markdownlintignore",
+        "lint:md:fix": "npx --yes markdownlint-cli@0.42.0 \"**/*.md\" --ignore-path .markdownlintignore --fix"
+    }
+}

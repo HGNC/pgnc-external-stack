@@ -1,0 +1,13 @@
+# Ignore generated or vendored content
+
+angular/3rdpartylicenses.md
+api/doc/
+solr/**
+**/node_modules/**
+**/dist/**
+**/build/**
+**/.next/**
+**/coverage/**
+**/CHANGELOG.md
+**/LICENSE
+**/LICENSE.md

@@ -9,12 +9,14 @@ The README.md file has been updated to include comprehensive documentation for t
 ### 1. Enhanced SSL/HTTPS Setup Section
 
 **Added new content:**
+
 - ✅ **SSL Certificate Auto-Renewal** subsection
 - ✅ Manual renewal command examples
 - ✅ Automated cron job setup instructions
 - ✅ Links to detailed documentation files
 
 **New commands documented:**
+
 ```bash
 # Manual certificate renewal
 ./total-refresh.sh --container-tool docker --renew-certs
@@ -29,11 +31,13 @@ The README.md file has been updated to include comprehensive documentation for t
 ### 2. Updated Script Options Table
 
 **Added new option:**
+
 - ✅ `--renew-certs` - Renew SSL certificates only (no full refresh)
 
 ### 3. Enhanced Development & Maintenance Section
 
 **Added certificate renewal example:**
+
 ```bash
 # Certificate renewal only (for cron jobs)
 ./total-refresh.sh --container-tool docker --renew-certs
@@ -42,6 +46,7 @@ The README.md file has been updated to include comprehensive documentation for t
 ### 4. Updated Environment Refresh Examples
 
 **Added renewal mode:**
+
 ```bash
 # Certificate renewal only (maintenance mode)
 ./total-refresh.sh --container-tool docker --renew-certs
@@ -50,6 +55,7 @@ The README.md file has been updated to include comprehensive documentation for t
 ### 5. Expanded Documentation Section
 
 **Added new documentation links:**
+
 - ✅ [Test Suite Updates](./TEST_SUITE_UPDATES.md)
 - ✅ [SSL Certificate Renewal Setup](./SSL_RENEWAL_SETUP.md)
 - ✅ [SSL Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)
@@ -57,6 +63,7 @@ The README.md file has been updated to include comprehensive documentation for t
 ## Link Verification
 
 All new documentation files are properly linked and accessible:
+
 - ✅ `SSL_RENEWAL_SETUP.md` - Complete setup guide
 - ✅ `RENEWAL_IMPLEMENTATION_SUMMARY.md` - Technical implementation details
 - ✅ `TEST_SUITE_UPDATES.md` - Test framework updates

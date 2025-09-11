@@ -9,6 +9,7 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ### 1. `test_total-refresh.sh` - Enhanced Main Test Suite
 
 **New Tests Added:**
+
 - ✅ `--renew-certs` argument parsing and validation
 - ✅ Conflict detection between `--renew-certs` and `--new`
 - ✅ Conflict detection between `--renew-certs` and `--clean-volumes`
@@ -19,6 +20,7 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 - ✅ Help documentation updates
 
 **Test Results:**
+
 - ✅ **Total tests: 52**
 - ✅ **Passed: 52**
 - ✅ **Failed: 0**
@@ -27,6 +29,7 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ### 2. `test_cert-renewal.sh` - New Dedicated Test Suite
 
 **Created comprehensive tests for the standalone renewal script:**
+
 - ✅ Docker container tool support
 - ✅ Podman container tool support  
 - ✅ Invalid container tool handling
@@ -37,12 +40,14 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ## Key Test Coverage Areas
 
 ### Argument Parsing & Validation
+
 - ✅ New `RENEW_CERTS` global variable
 - ✅ `--renew-certs` flag parsing
 - ✅ Mutual exclusion with `--new` and `--clean-volumes`
 - ✅ Container tool requirement validation
 
 ### Certificate Renewal Functionality
+
 - ✅ `renew_certificates()` function execution
 - ✅ Prerequisites checking (gcp-key.json, nginx status)
 - ✅ Certbot renewal command execution
@@ -50,11 +55,13 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 - ✅ Error handling for various failure scenarios
 
 ### Help Documentation
+
 - ✅ Updated help text includes `--renew-certs` option
 - ✅ Example usage for certificate renewal
 - ✅ Clear explanation of renewal functionality
 
 ### Mock Infrastructure
+
 - ✅ Enhanced `mock_docker()` function with renewal commands
 - ✅ Certificate renewal command mocking
 - ✅ Nginx reload command mocking
@@ -63,11 +70,13 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ## Test Framework Improvements
 
 ### Enhanced Assertions
+
 - ✅ Better error message handling in tests
 - ✅ More robust output validation
 - ✅ Improved exit code checking
 
 ### Mock Environment Setup
+
 - ✅ Mock container tools (docker/podman)
 - ✅ Mock SSL certificates and credentials
 - ✅ Isolated test environments
@@ -75,16 +84,19 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ## Testing Methodology
 
 ### Unit Tests
+
 - Individual function testing in isolation
 - Mock external dependencies
 - Comprehensive error condition coverage
 
 ### Integration Tests  
+
 - End-to-end argument parsing and validation
 - Complete renewal workflow testing
 - Cross-platform compatibility verification
 
 ### Error Handling Tests
+
 - Missing file scenarios
 - Service availability checks
 - Network/command failure simulation
@@ -92,16 +104,19 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ## Quality Assurance
 
 ### Test Reliability
+
 - ✅ All tests pass consistently
 - ✅ Proper test isolation and cleanup
 - ✅ No test interdependencies
 
 ### Coverage Completeness
+
 - ✅ All new functionality tested
 - ✅ All error paths validated
 - ✅ All user-facing features verified
 
 ### Documentation Accuracy
+
 - ✅ Help text reflects actual functionality
 - ✅ Examples work as documented
 - ✅ Error messages are clear and actionable
@@ -117,6 +132,7 @@ The test suite for the PGNC External Stack has been successfully updated to incl
 ## Future Maintenance
 
 The enhanced test suite provides:
+
 - **Easy verification** of functionality after code changes
 - **Clear documentation** of expected behavior through test cases
 - **Automated validation** that can be integrated into CI/CD pipelines

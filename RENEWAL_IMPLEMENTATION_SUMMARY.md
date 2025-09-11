@@ -9,12 +9,14 @@ The PGNC External Stack now includes automatic SSL certificate renewal functiona
 ### 1. Enhanced `total-refresh.sh` Script
 
 **Added Features:**
+
 - New `--renew-certs` command line option
 - `renew_certificates()` function for certificate-only renewal
 - Validation to prevent conflicting arguments
 - Enhanced help documentation with renewal examples
 
 **Usage:**
+
 ```bash
 # Renew certificates only (no full environment refresh)
 ./total-refresh.sh --container-tool docker --renew-certs
@@ -23,12 +25,14 @@ The PGNC External Stack now includes automatic SSL certificate renewal functiona
 ### 2. Dedicated Renewal Script
 
 **File:** `cert-renewal.sh`
+
 - Standalone script optimized for cron jobs
 - Includes timestamp logging for monitoring
 - Validates environment and prerequisites
 - Provides detailed success/failure reporting
 
 **Usage:**
+
 ```bash
 # Manual renewal
 ./cert-renewal.sh docker
@@ -40,6 +44,7 @@ The PGNC External Stack now includes automatic SSL certificate renewal functiona
 ### 3. Documentation
 
 **File:** `SSL_RENEWAL_SETUP.md`
+
 - Complete setup instructions
 - Troubleshooting guide
 - Security recommendations
@@ -58,6 +63,7 @@ crontab -e
 ```
 
 This configuration:
+
 - Runs twice daily (2:30 AM and 2:30 PM)
 - Provides redundancy in case one run fails
 - Logs all output for monitoring
@@ -75,6 +81,7 @@ This configuration:
 ## Testing
 
 The implementation has been tested with:
+
 - ✅ Argument validation (required and conflicting options)
 - ✅ Help documentation display
 - ✅ Certificate renewal process execution

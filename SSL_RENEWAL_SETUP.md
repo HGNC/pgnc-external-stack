@@ -38,6 +38,7 @@ crontab -e
 ```
 
 This will:
+
 - Run at 2:30 AM and 2:30 PM daily
 - Log output to `/var/log/pgnc-cert-renewal.log`
 - Use Docker as the container tool
@@ -81,11 +82,13 @@ You can manually renew certificates at any time:
 ### Common Issues
 
 1. **Permission denied**: Ensure scripts are executable
+
    ```bash
    chmod +x total-refresh.sh cert-renewal.sh
    ```
 
 2. **Container not running**: The nginx service must be running for renewal
+
    ```bash
    docker compose ps nginx
    # If not running, start the full environment first
@@ -95,6 +98,7 @@ You can manually renew certificates at any time:
 3. **Missing credentials**: Ensure `certbot/gcp-key.json` exists and is valid
 
 4. **Cron not working**: Check cron service is running and logs
+
    ```bash
    # Check cron logs (Ubuntu/Debian)
    grep CRON /var/log/syslog
