@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Angular](https://img.shields.io/badge/Angular-19.1+-red.svg)](https://angular.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.0-blue.svg)](https://www.postgresql.org/)
-[![Apache Solr](https://img.shields.io/badge/Apache%20Solr-8.x-orange.svg)](https://solr.apache.org/)
+[![Apache Solr](https://img.shields.io/badge/Apache%20Solr-9.9.0-orange.svg)](https://solr.apache.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-10.x-red.svg)](https://nestjs.com/)
 
 ## Overview
@@ -168,7 +168,7 @@ podman compose up -d
 
 - **Website**: <http://localhost:8080>
 - **API Documentation**: <http://localhost:3000/api>
-- **Solr Admin**: <http://localhost:8983/solr> (Apache Solr 8.x)
+- **Solr Admin**: <http://localhost:8983/solr> (Apache Solr 9.9.0)
 
 ## SSL/HTTPS Setup
 
@@ -215,7 +215,7 @@ For detailed setup instructions, see:
 
 Example of expected (non-error) output:
 
-```
+```text
 Hook '--manual-cleanup-hook' for plant.genenames.org ran with error output:
  Transaction started [transaction.yaml].
  Record removal appended to transaction at [transaction.yaml].
@@ -444,7 +444,7 @@ docker volume prune
 - **Frontend**: Angular 19.1+, TypeScript, RxJS
 - **Backend**: NestJS 10.x, Node.js, TypeScript  
 - **Database**: PostgreSQL 17.0
-- **Search**: Apache Solr 8.x (Lucene 8.5.2)
+- **Search**: Apache Solr 9.9.0
 - **Containers**: Docker/Podman with Docker Compose
 - **Web Server**: Nginx (reverse proxy)
 - **SSL**: Let's Encrypt with Certbot
