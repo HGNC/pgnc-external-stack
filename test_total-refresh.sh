@@ -30,8 +30,7 @@ setup_test_environment() {
     git config user.name "Test User"
     
     # Create mock docker-compose.yml
-    cat > docker-compose.yml << 'EOF'
-version: '3.8'
+    cat > docker-compose.yml <<EOF
 services:
   test:
     image: test
@@ -399,8 +398,7 @@ EOF
     chmod +x test_no_jq.sh
     
     # Restore docker-compose.yml for jq test
-    cat > docker-compose.yml << 'EOF'
-version: '3.8'
+    cat > docker-compose.yml <<EOF
 services:
   test:
     image: test
@@ -412,8 +410,7 @@ EOF
     assert_contains "$output" "jq is required" "Should show jq requirement message"
 
     # Restore for other tests
-    cat > docker-compose.yml << 'EOF'
-version: '3.8'
+    cat > docker-compose.yml <<EOF
 services:
   test:
     image: test
@@ -466,8 +463,8 @@ MY_EMAIL=test@example.com
 EOF
 }
 
-test_manage_submodules() {
-    echo -e "${TEST_BLUE}Testing manage_submodules function...${TEST_NC}"
+test_initialize_and_update_submodules() {
+    echo -e "${TEST_BLUE}Testing initialize_and_update_submodules function...${TEST_NC}"
     
     # Create a test script for submodule testing
     cat > test_submodules.sh << 'EOF'
@@ -490,25 +487,26 @@ git() {
             echo "Adding .gitmodules"
             return 0
             ;;
+        "pull")
+            echo "Pulling latest code changes"
+            return 0
+            ;;
         "submodule update --remote --recursive")
             echo "Updating submodules to latest branch commits"
             return 0
             ;;
         "submodule foreach"*)
             echo "Processing submodule: test-submodule"
-            echo "Switching test-submodule from detached to main"
             return 0
             ;;
         "submodule status")
             echo " abc123 angular (heads/dev)"
             echo " def456 api (heads/main)"
-            echo " ghi789 solr (heads/main)"
             return 0
             ;;
         "config -f .gitmodules --get-regexp"*)
             echo "submodule.angular.branch dev"
             echo "submodule.api.branch main"
-            echo "submodule.solr.branch main"
             return 0
             ;;
         "diff --quiet .gitmodules")
@@ -521,21 +519,21 @@ git() {
 }
 
 # Create mock submodule directories
-mkdir -p angular api solr certbot db-data nginx python solr-client solr-data
+mkdir -p angular api
 
 # Test with NEW_ENVIRONMENT=true
 echo "=== Testing NEW_ENVIRONMENT=true ==="
 NEW_ENVIRONMENT=true
-manage_submodules 2>&1
+initialize_and_update_submodules 2>&1
 echo "---"
 
 # Test with NEW_ENVIRONMENT=false  
 echo "=== Testing NEW_ENVIRONMENT=false ==="
 NEW_ENVIRONMENT=false
-manage_submodules 2>&1
+initialize_and_update_submodules 2>&1
 
 # Clean up mock directories
-rm -rf angular api solr certbot db-data nginx python solr-client solr-data
+rm -rf angular api
 EOF
     chmod +x test_submodules.sh
     
@@ -543,18 +541,15 @@ EOF
     output=$(./test_submodules.sh)
     
     # Test NEW_ENVIRONMENT=true behavior
-    assert_contains "$output" "Initializing git submodules with branch tracking" "Should initialize submodules with branch tracking for new environment"
-    assert_contains "$output" "Configuring submodules to track branches" "Should configure branch tracking for new environment"
-    assert_contains "$output" "Configuring branch tracking" "Should set up .gitmodules configuration"
+    assert_contains "$output" "Initializing submodules..." "Should initialize submodules for new environment"
+    assert_contains "$output" "Configuring submodules to track branches..." "Should configure branch tracking for new environment"
     
     # Test NEW_ENVIRONMENT=false behavior  
-    assert_contains "$output" "Updating git submodules to latest branch commits" "Should update submodules to latest branch commits for existing environment"
-    assert_contains "$output" "Ensuring submodules are configured for branch tracking" "Should ensure branch tracking is configured"
-    assert_contains "$output" "Processing submodule" "Should process each submodule individually"
+    assert_contains "$output" "Pulling latest code changes..." "Should pull latest code for existing environment"
     
     # Test verification steps
-    assert_contains "$output" "Verifying submodule configuration" "Should verify submodule configuration"
-    assert_contains "$output" "Git submodules configured for branch tracking" "Should complete with success message"
+    assert_contains "$output" "Verifying submodule configuration..." "Should verify submodule configuration"
+    assert_contains "$output" "Git submodules are up to date." "Should complete with success message"
     
     rm test_submodules.sh
 }
@@ -976,19 +971,240 @@ EOF
     assert_equals "1" "$exit_code" "Should fail when certbot renewal fails"
 }
 
+# Test function for --no-pull flag basic behavior
+test_no_pull_functionality() {
+    echo -e "${TEST_BLUE}Testing --no-pull flag functionality...${TEST_NC}"
+
+    # Mock the git function to trace calls
+    git() {
+        case "$*" in
+            "pull")
+                echo "git pull called"
+                return 0
+                ;;
+            "submodule update --remote --recursive")
+                echo "git submodule update --remote called"
+                return 0
+                ;;
+            "submodule update --init --recursive")
+                echo "git submodule update --init called"
+                return 0
+                ;;
+            *)
+                # Allow other git commands to pass through without error
+                return 0
+                ;;
+        esac
+    }
+
+    # Test case 1: Without --no-pull, git pull and submodule update should be called.
+    # We set NEW_ENVIRONMENT to false to trigger the update path.
+    NEW_ENVIRONMENT=false
+    NO_PULL=false
+    local output
+    output=$(initialize_and_update_submodules 2>&1)
+    assert_contains "$output" "Pulling latest code changes" "Should attempt to pull code without --no-pull"
+
+    # Test case 2: With --no-pull, git pull and submodule update should be skipped.
+    NO_PULL=true
+    output=$(initialize_and_update_submodules 2>&1)
+    assert_contains "$output" "Skipping git pull and submodule update" "Should skip pulling code with --no-pull"
+
+    # Reset NO_PULL for subsequent tests
+    NO_PULL=false
+}
+
+# Test function for --no-pull flag constraints
+test_no_pull_constraints() {
+    echo -e "${TEST_BLUE}Testing --no-pull flag constraints...${TEST_NC}"
+
+    # Test --no-pull with --new
+    local exit_code=0
+    (parse_arguments --no-pull --new --container-tool docker >/dev/null 2>&1) || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when --no-pull is used with --new"
+
+    # Test --no-pull with --renew-certs
+    exit_code=0
+    (parse_arguments --no-pull --renew-certs --container-tool docker >/dev/null 2>&1) || exit_code=$?
+    assert_equals "1" "$exit_code" "Should fail when --no-pull is used with --renew-certs"
+}
+
+test_no_pull_integration() {
+    echo -e "${TEST_BLUE}Testing --no-pull flag integration...${TEST_NC}"
+
+    # Create a dedicated test directory for integration tests
+    local integration_test_dir
+    integration_test_dir=$(mktemp -d)
+    cd "$integration_test_dir"
+
+    # 1. Set up mock remote and local repositories
+    # Remote bare repo for the submodule
+    git init --bare --quiet submodule_remote.git
+    # Local clone of submodule to make commits
+    git clone --quiet submodule_remote.git submodule_local
+    (
+        cd submodule_local
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        git checkout -b master
+        echo "initial content" > file.txt
+        git add file.txt
+        git commit -m "Initial submodule commit"
+        git push --quiet -u origin master
+        echo "--- Submodule remote branches after push ---"
+        git --git-dir=../submodule_remote.git branch -a
+        echo "------------------------------------------"
+    )
+    local submodule_commit1
+    submodule_commit1=$(cd submodule_local && git rev-parse HEAD)
+
+    # Main repository setup
+    # Remote bare repo for the main project
+    git init --bare --quiet main_repo_remote.git
+    # Local clone of main project
+    git clone --quiet main_repo_remote.git main_repo
+    (
+        cd main_repo
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        git checkout -b master
+        echo "Main repo" > README.md
+        git add README.md
+        git commit -m "Initial commit"
+        
+        # Use a relative path for the submodule and explicitly track the master branch
+        git submodule add -b master --quiet ../submodule_remote.git submodule
+        
+        git commit -m "Add submodule"
+
+        # Push initial main repo state to its remote
+        git push --quiet -u origin master
+
+        # Copy script and config into the test repo
+        cp "$SCRIPT_TO_TEST" total-refresh.sh
+        chmod +x total-refresh.sh
+        cat > .env << 'EOF'
+DB_PASSWORD=testpass
+***REMOVED_SECRET***
+API_PASSWORD=testapi
+LOCALHOST_NGINX_PORT=8080
+LOCALHOST_NGINX_SSL_PORT=8443
+MY_EMAIL=test@example.com
+EOF
+        # Remove the minimal Dockerfile as it's no longer needed
+        rm -f Dockerfile
+        # Create a dummy docker-compose.yml for the test
+        cat > docker-compose.yml <<EOF
+services:
+  pgncdb:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  solr:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  api:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  angular:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  nginx:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  python:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+  solr-client:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+EOF
+    )
+
+    # 2. Test Scenario: Submodule is updated when --no-pull is NOT used
+    (
+        cd submodule_local
+        echo "updated content" > file.txt
+        git commit -am "Second submodule commit"
+        git push --quiet origin master
+    )
+    local submodule_commit2
+    submodule_commit2=$(cd submodule_local && git rev-parse HEAD)
+
+    (
+        cd main_repo
+        # Run the script without --no-pull, with tracing enabled
+        set -x
+        ./total-refresh.sh --container-tool docker
+        set +x
+        # Override health check for test services
+        local current_submodule_commit
+        current_submodule_commit=$(cd submodule && git rev-parse HEAD)
+        assert_equals "$submodule_commit2" "$current_submodule_commit" "Should update submodule to latest commit without --no-pull"
+    )
+
+    # 3. Test Scenario: Submodule is NOT updated when --no-pull IS used
+    (
+        cd submodule_local
+        echo "third content" > file.txt
+        git commit -am "Third submodule commit"
+        git push --quiet origin master
+    )
+    
+    (
+        cd main_repo
+        # Run the script with --no-pull
+        ./total-refresh.sh --container-tool docker --no-pull > /dev/null 2>&1
+        local current_submodule_commit
+        current_submodule_commit=$(cd submodule && git rev-parse HEAD)
+        assert_equals "$submodule_commit2" "$current_submodule_commit" "Should NOT update submodule with --no-pull"
+    )
+
+    # 4. Test Scenario: Missing submodule is initialized even with --no-pull
+    (
+        cd main_repo
+        rm -rf submodule
+        # Run the script with --no-pull
+        ./total-refresh.sh --container-tool docker --no-pull > /dev/null 2>&1
+        assert_file_exists "submodule/file.txt" "Should initialize submodule even with --no-pull"
+        local current_submodule_commit
+        current_submodule_commit=$(cd submodule && git rev-parse HEAD)
+        assert_equals "$submodule_commit1" "$current_submodule_commit" "Initialized submodule should be at the commit specified in the main repo"
+    )
+
+    # Cleanup
+    cd "$SCRIPT_DIR"
+    rm -rf "$integration_test_dir"
+}
+
 # Main test runner
 run_all_tests() {
     echo -e "${TEST_BLUE}Starting test suite for total-refresh.sh${TEST_NC}"
     echo "================================================"
     
+    # Temporarily adjust global git config for local file protocol access.
+    # This is required for the integration test that uses local file-based git repos.
+    local original_git_config
+    original_git_config=$(git config --global --get protocol.file.allow 2>/dev/null || echo "notset")
+    git config --global protocol.file.allow always
+
+    # Run integration test separately as it manages its own environment
+    test_no_pull_integration
+
+    # Restore original git config
+    if [[ "$original_git_config" == "notset" ]]; then
+        git config --global --unset protocol.file.allow
+    else
+        git config --global protocol.file.allow "$original_git_config"
+    fi
+
     setup_test_environment
     
-    # Run all test functions
+    # Run all other test functions
     test_log_functions
     test_parse_arguments
     test_check_prerequisites
     test_validate_env_file
-    test_manage_submodules
+    test_initialize_and_update_submodules
     test_submodule_branch_tracking
     test_wait_for_services
     test_cross_platform_compatibility
@@ -997,6 +1213,72 @@ run_all_tests() {
     test_script_argument_validation
     test_ssl_functionality
     test_certificate_renewal
+
+    # Add new test cases for --no-pull flag
+    test_no_pull_functionality
+    test_no_pull_constraints
+    
+    teardown_test_environment
+    
+    # Print test summary
+    echo
+    echo "================================================"
+    echo -e "${TEST_BLUE}Test Summary:${TEST_NC}"
+    echo -e "  Total tests: $TEST_COUNT"
+    echo -e "  ${TEST_GREEN}Passed: $PASS_COUNT${TEST_NC}"
+    echo -e "  ${TEST_RED}Failed: $FAIL_COUNT${TEST_NC}"
+    
+    if [[ $FAIL_COUNT -eq 0 ]]; then
+        echo -e "${TEST_GREEN}All tests passed!${TEST_NC}"
+        exit 0
+    else
+        echo -e "${TEST_RED}Some tests failed.${TEST_NC}"
+        exit 1
+    fi
+}
+
+
+# Main test runner
+run_all_tests() {
+    echo -e "${TEST_BLUE}Starting test suite for total-refresh.sh${TEST_NC}"
+    echo "================================================"
+    
+    # Temporarily adjust global git config for local file protocol access.
+    # This is required for the integration test that uses local file-based git repos.
+    local original_git_config
+    original_git_config=$(git config --global --get protocol.file.allow 2>/dev/null || echo "notset")
+    git config --global protocol.file.allow always
+
+    # Run integration test separately as it manages its own environment
+    test_no_pull_integration
+
+    # Restore original git config
+    if [[ "$original_git_config" == "notset" ]]; then
+        git config --global --unset protocol.file.allow
+    else
+        git config --global protocol.file.allow "$original_git_config"
+    fi
+
+    setup_test_environment
+    
+    # Run all other test functions
+    test_log_functions
+    test_parse_arguments
+    test_check_prerequisites
+    test_validate_env_file
+    test_initialize_and_update_submodules
+    test_submodule_branch_tracking
+    test_wait_for_services
+    test_cross_platform_compatibility
+    test_show_status
+    test_show_help
+    test_script_argument_validation
+    test_ssl_functionality
+    test_certificate_renewal
+
+    # Add new test cases for --no-pull flag
+    test_no_pull_functionality
+    test_no_pull_constraints
     
     teardown_test_environment
     

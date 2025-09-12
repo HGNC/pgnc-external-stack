@@ -14,6 +14,14 @@ This repository contains the external technology stack for the **PGNC (Plant Gen
 
 The stack is a containerized microservices architecture that provides a complete web application for plant gene data management, search, and visualization.
 
+## Documentation Index
+
+- Angular docs hub: [angular/angular.md](./angular/angular.md)
+- Angular source overview: [angular/src/src.md](./angular/src/src.md)
+- Python docs hub: [python/docs/README.md](./python/docs/README.md)
+- SSL renewal setup: [SSL_RENEWAL_SETUP.md](./SSL_RENEWAL_SETUP.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+
 ## Architecture
 
 The project relies on several microservices/components organized as Docker containers:
@@ -82,20 +90,47 @@ cp ../gcp-key.json certbot/gcp-key.json
 ./total-refresh.sh --new --container-tool docker --ssl
 ```
 
-#### Environment Refresh/Update
+#### Script Options
+
+- `--new`: Sets up a new environment, building all containers from scratch.
+- `--container-tool <docker|podman>`: Specifies the container runtime to use.
+- `--ssl`: Enables SSL and manages certificates.
+- `--renew-certs`: Renews SSL certificates without a full environment refresh.
+- `--clean-volumes`: Removes all Docker volumes, deleting persistent data (e.g., database and search indexes). **Use with caution.**
+- `--no-pull`: Skips pulling the latest code from Git repositories. This is useful for development when you want to test local changes without them being overwritten. Cannot be used with `--new` or `--renew-certs`.
+- `--verbose`: Enables detailed logging for debugging.
+- `--help`: Displays the help message.
+
+#### Common Use Cases
+
+**Refresh existing environment (pulls latest code and rebuilds):**
 
 ```bash
-# Refresh existing environment (pulls latest code and rebuilds)
 ./total-refresh.sh --container-tool docker
+```
 
-# Refresh with SSL certificate generation
+**Refresh with SSL certificate generation:**
+
+```bash
 ./total-refresh.sh --container-tool docker --ssl
+```
 
-# Certificate renewal only (maintenance mode)
+**Certificate renewal only (for cron jobs):**
+
+```bash
 ./total-refresh.sh --container-tool docker --renew-certs
+```
 
-# Clean refresh (removes all volumes - destroys data!)
+**Clean refresh (removes all volumes - destroys data!):**
+
+```bash
 ./total-refresh.sh --container-tool docker --clean-volumes
+```
+
+**Run refresh without pulling code (for local development):**
+
+```bash
+./total-refresh.sh --container-tool docker --no-pull
 ```
 
 #### Script Features
@@ -166,8 +201,8 @@ podman compose up -d
 
 ### Accessing the Application
 
-- **Website**: <http://localhost:8080>
-- **API Documentation**: <http://localhost:3000/api>
+- **Website**: <http://localhost:8080> <!-- markdown-link-check-disable-line (dev endpoint) -->
+- **API Documentation**: <http://localhost:3000/api> <!-- markdown-link-check-disable-line (dev endpoint) -->
 - **Solr Admin**: <http://localhost:8983/solr> (Apache Solr 9.9.0)
 
 ## SSL/HTTPS Setup
@@ -209,7 +244,7 @@ crontab -e
 For detailed setup instructions, see:
 
 - 📋 **[SSL Renewal Setup Guide](./SSL_RENEWAL_SETUP.md)** - Complete configuration instructions
-- 📊 **[Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+  
 
 > **Note**: Ignore transaction-related output messages - these are normal operation logs, not errors.
 
@@ -434,10 +469,15 @@ docker volume prune
 - [Python Components](./python/README.md)
 - [Angular Frontend](./angular/angular.md)  
 - [Testing Guide](./python/TESTING_SUMMARY.md)
-- [Test Suite Updates](./TEST_SUITE_UPDATES.md)
 - [Pylance Configuration](./python/PYLANCE_CONFIG.md)
 - [SSL Certificate Renewal Setup](./SSL_RENEWAL_SETUP.md)
-- [SSL Renewal Implementation Summary](./RENEWAL_IMPLEMENTATION_SUMMARY.md)
+- [Changelog](./CHANGELOG.md)
+
+## Security
+
+- Do not commit real secrets (API keys, passwords) to the repository. Use `sample.env` as a template and keep your real `.env` local.
+- Replace example credentials with placeholders in docs where necessary.
+- If any secret has been committed previously, rotate it immediately and force-push no history rewrites into shared branches without coordination.
 
 ## Technology Stack
 

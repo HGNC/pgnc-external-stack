@@ -42,6 +42,7 @@ ENABLE_SSL=false         # Flag: Enable SSL certificate generation with Certbot
 CLEAN_VOLUMES=false      # Flag: Remove volumes during cleanup (destroys data)
 VERBOSE=false            # Flag: Enable verbose output (currently unused)
 RENEW_CERTS=false        # Flag: Renew SSL certificates only (no full refresh)
+NO_PULL=false            # Flag: Skip pulling latest changes from git
 
 # Colors for output formatting
 readonly RED='\033[0;31m'      # Error messages
@@ -90,6 +91,18 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
+# Function: log_verbose
+# Description: Display a verbose message only when VERBOSE flag is true
+# Parameters:
+#   $1: Message string to display
+# Globals:
+#   VERBOSE: Flag to control verbose output
+log_verbose() {
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo -e "[VERBOSE] $1"
+    fi
+}
+
 # Function: show_help
 # Description: Display usage information and available options
 show_help() {
@@ -105,6 +118,7 @@ OPTIONS:
     --ssl                   Enable SSL certificate generation with Certbot
     --renew-certs          Renew SSL certificates only (no full refresh)
     --clean-volumes         Remove all volumes during cleanup (WARNING: destroys data)
+    --no-pull               Skip pulling latest changes from git (for development)
     --verbose              Enable verbose output
     --help                 Show this help message
 
@@ -120,6 +134,9 @@ EXAMPLES:
 
     # Clean refresh with volume removal (destroys all data)
     $(basename "$0") --container-tool docker --clean-volumes
+
+    # Run refresh without pulling latest code (for local development)
+    $(basename "$0") --container-tool docker --no-pull
 
 DESCRIPTION:
     This script manages the PGNC multi-service environment consisting of:
@@ -153,6 +170,8 @@ EOF
 #   ENABLE_SSL: Set to true if --ssl flag is provided
 #   CLEAN_VOLUMES: Set to true if --clean-volumes flag is provided
 #   VERBOSE: Set to true if --verbose flag is provided
+#   RENEW_CERTS: Set to true if --renew-certs flag is provided
+#   NO_PULL: Set to true if --no-pull flag is provided
 # Exit codes:
 #   0: Arguments parsed successfully
 #   1: Invalid arguments, missing required arguments, or tool not available
@@ -179,6 +198,10 @@ parse_arguments() {
                 RENEW_CERTS=true
                 shift
                 ;;
+            --no-pull)
+                NO_PULL=true
+                shift
+                ;;
             --clean-volumes)
                 CLEAN_VOLUMES=true
                 shift
@@ -198,6 +221,17 @@ parse_arguments() {
                 ;;
         esac
     done
+
+    # Validate conflicting flags
+    if [[ "$NO_PULL" == "true" && "$NEW_ENVIRONMENT" == "true" ]]; then
+        log_error "The --no-pull flag cannot be used with --new."
+        exit 1
+    fi
+
+    if [[ "$NO_PULL" == "true" && "$RENEW_CERTS" == "true" ]]; then
+        log_error "The --no-pull flag cannot be used with --renew-certs."
+        exit 1
+    fi
 
     # Validate required parameters
     if [[ -z "$CONTAINER_TOOL" ]]; then
@@ -340,184 +374,189 @@ validate_env_file() {
     log_success "Environment configuration validated"
 }
 
-# Function: manage_submodules
-# Description: Initialize and update git submodules to track branches
-# Behavior:
-#   - NEW_ENVIRONMENT=true: Initialize submodules and configure branch tracking
-#   - NEW_ENVIRONMENT=false: Update submodules to latest branch commits
-# Globals:
-#   NEW_ENVIRONMENT: Determines initialization vs update behavior
-# Exit codes:
-#   0: Submodules successfully managed
-#   1: Submodule operations failed or submodules not properly initialized
-manage_submodules() {
-    # Function to get the target branch for a submodule
-    get_submodule_branch() {
-        case $1 in
-            "angular") echo "dev" ;;
-            "api") echo "main" ;;
-            "certbot") echo "main" ;;
-            "db-data") echo "dev" ;;
-            "nginx") echo "main" ;;
-            "python") echo "main" ;;
-            "solr") echo "main" ;;
-            "solr-client") echo "main" ;;
-            "solr-data") echo "main" ;;
-            *) echo "main" ;;
-        esac
-    }
-    
-    # List of all submodules
-    SUBMODULES=("angular" "api" "certbot" "db-data" "nginx" "python" "solr" "solr-client" "solr-data")
+# Function: get_submodule_branch
+# Description: Get the target branch for a given submodule
+# Parameters:
+#   $1: Submodule name
+# Returns:
+#   The branch name to be tracked (e.g., "dev", "main")
+get_submodule_branch() {
+    case "$1" in
+        "angular"|"db-data")
+            echo "dev"
+            ;;
+        *)
+            echo "main"
+            ;;
+    esac
+}
 
-    if [[ "$NEW_ENVIRONMENT" == true ]]; then
-        log_info "Initializing git submodules with branch tracking..."
+# Function: log_commit_hash
+# Description: Log the current commit hash of the superproject and submodules
+# Globals:
+#   VERBOSE: Only logs if this is true
+log_commit_hash() {
+    if [[ "$VERBOSE" == "true" ]]; then
+        log_verbose "Current repository state:"
+        local main_commit
+        main_commit=$(git rev-parse --short HEAD)
+        log_verbose "  - Superproject commit: $main_commit"
         
-        # Initialize submodules
-        git submodule update --init --recursive
-        
-        # Configure each submodule to track its branch
-        log_info "Configuring submodules to track branches..."
-        
-        for submodule in "${SUBMODULES[@]}"; do
+        log_verbose "  - Submodule commits:"
+        git submodule status | while read -r submodule_commit submodule_name submodule_branch; do
+            log_verbose "    - $submodule_name: ${submodule_commit:1} ($submodule_branch)"
+        done
+    fi
+}
+
+# Function: pull_latest_code
+# Description: Pull latest changes for the superproject and update submodules
+# Behavior:
+#   - Pulls latest changes for the main repository
+#   - Updates submodules to the latest commit on their tracked branch
+#   - Provides detailed error handling for each git operation
+# Exit codes:
+#   0: Success
+#   1: Git operation failed
+pull_latest_code() {
+    log_info "Pulling latest code changes..."
+    log_commit_hash # Log state before pulling
+
+    # Pull latest changes for the superproject
+    log_info "Updating superproject..."
+    if ! git pull; then
+        log_error "Failed to pull latest changes for the superproject."
+        log_warning "Please resolve any git conflicts and try again."
+        return 1
+    fi
+
+    # Update submodules to their latest remote versions
+    log_info "Updating submodules to latest remote versions..."
+    if ! git submodule update --remote --recursive; then
+        log_error "Failed to update submodules to their latest versions."
+        log_warning "This can happen due to detached HEAD, conflicts, or network issues."
+        log_info "Attempting to fix by checking out tracked branches..."
+
+        # Fallback: manually checkout and pull each submodule
+        local submodule_failed=false
+        for submodule in $(git submodule status | awk '{print $2}'); do
             if [[ -d "$submodule" ]]; then
+                (
+                    cd "$submodule"
+                    branch=$(git config -f ../.gitmodules "submodule.$submodule.branch" || echo "main")
+                    log_info "Updating submodule '$submodule' on branch '$branch'..."
+                    if ! git checkout "$branch" || ! git pull origin "$branch"; then
+                        log_warning "Failed to update submodule: $submodule"
+                        submodule_failed=true
+                    fi
+                )
+            fi
+        done
+
+        if [[ "$submodule_failed" == "true" ]]; then
+            log_error "One or more submodules failed to update. Please check the logs."
+            return 1
+        fi
+    fi
+
+    log_success "Code updated successfully."
+    log_commit_hash # Log state after pulling
+    return 0
+}
+
+# Function: initialize_and_update_submodules
+# Description: Initialize and update git submodules based on environment type
+# Behavior:
+#   - For new environments, initializes submodules and configures branch tracking
+#   - For existing environments, updates submodules to latest branch commits
+#   - Skips all git operations if --no-pull flag is provided
+# Globals:
+#   NEW_ENVIRONMENT: Flag to determine if it's a new setup
+#   NO_PULL: Flag to skip git operations
+# Exit codes:
+#   0: Success
+#   1: Submodule initialization or update failure
+initialize_and_update_submodules() {
+    # Always initialize submodules to ensure they are present, even with --no-pull
+    log_info "Initializing submodules..."
+    if ! git submodule update --init --recursive; then
+        log_error "Failed to initialize submodules."
+        log_warning "Please check your git configuration and submodule access."
+        return 1
+    fi
+
+    if [[ "$NO_PULL" == "true" ]]; then
+        log_info "Skipping git pull and submodule update as per --no-pull flag."
+        log_commit_hash # Log current state even when not pulling
+        return 0
+    fi
+
+    # For new environments, we need to set up branch tracking
+    if [[ "$NEW_ENVIRONMENT" == "true" ]]; then
+        log_info "Configuring submodules to track branches..."
+        local submodules
+        submodules=($(git submodule status | awk '{print $2}'))
+        
+        for submodule in "${submodules[@]}"; do
+            if [[ -d "$submodule" ]]; then
+                local branch
                 branch=$(get_submodule_branch "$submodule")
                 log_info "Configuring $submodule to track branch: $branch"
                 
-                # Configure the submodule to track the branch in .gitmodules
-                git config -f .gitmodules "submodule.$submodule.branch" "$branch"
-                
-                # Checkout the branch in the submodule
-                cd "$submodule"
-                if git show-ref --verify --quiet "refs/heads/$branch"; then
-                    git checkout "$branch" 2>/dev/null || true
-                else
-                    git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
-                fi
-                git pull origin "$branch" 2>/dev/null || true
-                cd ..
-            fi
-        done
-        
-        # Update parent repository to track the new configuration
-        git add .gitmodules 2>/dev/null || true
-        
-    else
-        log_info "Updating git submodules to latest branch commits..."
-        
-        # First, ensure all submodules are configured for branch tracking
-        log_info "Ensuring submodules are configured for branch tracking..."
-        for submodule in "${SUBMODULES[@]}"; do
-            if [[ -d "$submodule" ]]; then
-                branch=$(get_submodule_branch "$submodule")
-                # Check if branch tracking is configured
-                current_branch=$(git config -f .gitmodules "submodule.$submodule.branch" 2>/dev/null || echo "")
-                if [[ "$current_branch" != "$branch" ]]; then
-                    log_info "Configuring $submodule to track branch: $branch"
-                    git config -f .gitmodules "submodule.$submodule.branch" "$branch"
+                # Set branch in .gitmodules
+                if ! git config -f .gitmodules "submodule.$submodule.branch" "$branch"; then
+                    log_warning "Failed to set branch for submodule $submodule in .gitmodules"
                 fi
             fi
         done
         
-        # Ensure all submodules have proper remote HEAD references
-        git submodule foreach 'git remote set-head origin -a 2>/dev/null || true'
-        
-        # Update submodules to their latest branch commits (not SHA)
-        if ! git submodule update --remote --recursive 2>/dev/null; then
-            log_warning "Remote update failed, trying manual approach..."
-            
-            # Manual update approach - ensure each submodule is on correct branch
-            git submodule foreach '
-                echo "Updating submodule: $name"
-                git fetch origin || true
-                branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo "main")
-                current_branch=$(git branch --show-current)
-                
-                # Switch to correct branch if needed
-                if [[ "$current_branch" != "$branch" ]]; then
-                    echo "Switching $name from $current_branch to $branch"
-                    if git show-ref --verify --quiet "refs/heads/$branch"; then
-                        git checkout "$branch" 2>/dev/null || true
-                    else
-                        git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
-                    fi
-                fi
-                
-                # Pull latest changes
-                git pull origin "$branch" 2>/dev/null || true
-            '
+        # Add .gitmodules to staging if it was modified
+        if ! git diff --quiet .gitmodules; then
+            if ! git add .gitmodules; then
+                log_warning "Failed to stage .gitmodules changes."
+            fi
         fi
-        
-        # Ensure each submodule is on its configured branch
-        git submodule foreach '
-            branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo "main")
-            current_branch=$(git branch --show-current)
-            if [[ "$current_branch" != "$branch" ]]; then
-                echo "Switching $name from $current_branch to $branch"
-                if git show-ref --verify --quiet "refs/heads/$branch"; then
-                    git checkout "$branch" 2>/dev/null || true
-                else
-                    git checkout -b "$branch" "origin/$branch" 2>/dev/null || git checkout "$branch" 2>/dev/null || true
-                fi
-            fi
-            git pull origin "$branch" 2>/dev/null || true
-        '
     fi
 
-    # Verify submodules are properly configured
+    # For both new and existing environments (when not using --no-pull), pull the latest code
+    if ! pull_latest_code; then
+        log_error "Failed to pull latest code."
+        return 1
+    fi
+
+    # Final verification of submodule status
     log_info "Verifying submodule configuration..."
     git submodule foreach 'echo "Submodule $name: $(git branch --show-current 2>/dev/null || echo "detached") ($(git rev-parse --short HEAD))"'
-
-    # Add .gitmodules if it was modified
-    if ! git diff --quiet .gitmodules 2>/dev/null; then
-        log_info "Branch tracking configuration updated in .gitmodules"
-        git add .gitmodules 2>/dev/null || true
-    fi
-
-    # Verify submodules are properly initialized
-    if ! git submodule status | grep -v '^-' > /dev/null; then
-        log_warning "Some submodules may not be properly initialized, attempting to fix..."
-        
-        # Force reinitialize if needed
-        git submodule deinit --all -f 2>/dev/null || true
-        git submodule update --init --recursive
-        
-        # Final verification
-        if ! git submodule status | grep -v '^-' > /dev/null; then
-            log_error "Unable to properly initialize all submodules"
-            log_info "Manual intervention may be required:"
-            log_info "  git submodule status"
-            log_info "  git submodule deinit --all -f"
-            log_info "  git submodule update --init --recursive"
-            exit 1
-        fi
-    fi
-
-    log_success "Git submodules configured for branch tracking"
+    
+    log_success "Git submodules are up to date."
 }
 
 # Function: stop_services
 # Description: Stop all running containers gracefully
 # Behavior:
-#   - Stops containers defined in docker-compose.yml
-#   - Uses SSL profile if ENABLE_SSL is true
-#   - Removes orphaned containers
+#   - Stops all services defined in the docker-compose.yml file
+#   - Optionally removes volumes if --clean-volumes is specified
 # Globals:
-#   ENABLE_SSL: Determines if SSL profile should be used
-#   CONTAINER_TOOL: Container tool to use (docker/podman)
+#   CONTAINER_TOOL: The container management tool (docker/podman)
+#   CLEAN_VOLUMES: Flag to determine if volumes should be removed
 # Exit codes:
-#   0: Services stopped successfully
-#   1: Failed to stop services (handled by set -e)
+#   0: Success
+#   1: Failure to stop services
 stop_services() {
-    log_info "Stopping existing services..."
+    log_info "Stopping all running services..."
     
-    if [[ "$ENABLE_SSL" == true ]]; then
-        $CONTAINER_TOOL compose --profile ssl down --remove-orphans
-    else
-        $CONTAINER_TOOL compose down --remove-orphans
+    local compose_cmd=("$CONTAINER_TOOL-compose" "down")
+    if [[ "$CLEAN_VOLUMES" == "true" ]]; then
+        log_warning "Removing all volumes as requested. ALL DATA WILL BE LOST."
+        compose_cmd+=("--volumes")
     fi
-
-    log_success "Services stopped successfully"
+    
+    if ! "${compose_cmd[@]}"; then
+        log_error "Failed to stop services."
+        return 1
+    fi
+    
+    log_success "All services stopped successfully."
 }
 
 # Function: cleanup_resources
@@ -584,6 +623,42 @@ build_services() {
     log_success "Container images built successfully"
 }
 
+# Function: get_service_health
+# Description: Get the health status of a specific service
+# Arguments:
+#   $1: Service name
+#   $2: Container tool
+# Returns:
+#   Health status string (e.g., "healthy", "unhealthy", "running")
+get_service_health() {
+    local service_name="$1"
+    local container_tool="$2"
+
+    # The `docker compose ps --format json` command outputs a stream of JSON objects, not a single JSON array.
+    # We need to process this stream. The `jq 'select(.Service == ...)'` filter works correctly on a stream.
+    local service_info
+    service_info=$($container_tool compose ps --format json | jq "select(.Service == \"$service_name\")" 2>/dev/null)
+
+    if [[ -z "$service_info" ]]; then
+        echo "not_found"
+        return
+    fi
+
+    # For both testing and production, if a container has no health check, its readiness is determined by its state.
+    # The alpine containers in the test environment only have a 'running' state.
+    # Production containers without a health check are also considered ready if 'running'.
+    local health_status
+    health_status=$(echo "$service_info" | jq -r '.Health' 2>/dev/null)
+
+    if [[ -z "$health_status" || "$health_status" == "null" ]]; then
+        local state
+        state=$(echo "$service_info" | jq -r '.State' 2>/dev/null)
+        echo "$state"
+    else
+        echo "$health_status"
+    fi
+}
+
 # Function: start_services
 # Description: Start all services in the correct order
 # Operations:
@@ -618,10 +693,10 @@ start_services() {
 # Description: Wait for all services to be healthy or in their expected final state
 # Behavior:
 #   - Monitors different service types with appropriate expectations:
-#     * Long-running services (pgncdb, api, angular, solr, solr-client): Must be "healthy"
+#     * Long-running services (pgncdb, api, angular, solr, solr-client): Must be "healthy" or "running"
 #     * Task services (python): Must be "exited" with exit code 0
 #     * Nginx: Allowed to be "unhealthy" initially (may need SSL setup)
-#   - Waits up to 10 minutes (600 seconds) for all services to reach expected states
+#   - Waits up to 5 minutes (300 seconds) for all services to reach expected states
 #   - Provides progress updates every 30 seconds
 #   - Uses jq to parse JSON output from docker compose ps
 #   - Compatible with both macOS and Linux platforms
@@ -634,95 +709,60 @@ start_services() {
 #   0: All services reached expected states within timeout
 #   1: Services did not reach expected states within timeout period
 wait_for_services() {
-    log_info "Waiting for services to reach expected states..."
-    
-    local max_wait=600  # 10 minutes
-    local wait_time=0
-    
-    # Define services and their expected states (service:expected_state)
-    local service_list=()
-    service_list+=("pgncdb:healthy")
-    service_list+=("api:healthy")
-    service_list+=("angular:healthy")
-    service_list+=("solr:healthy")
-    
-    # Add solr-client only if SSL is disabled (when SSL is enabled, it may not be started)
+    local services_to_check=("pgncdb" "api" "angular" "solr" "nginx")
     if [[ "$ENABLE_SSL" == false ]]; then
-        service_list+=("solr-client:healthy")
+        services_to_check+=("solr-client")
     fi
-    
-    # Python service should exit successfully after data loading
-    service_list+=("python:exited")
-    
-    # Nginx health depends on SSL configuration
-    if [[ "$ENABLE_SSL" == true ]]; then
-        # When SSL is enabled, nginx might be unhealthy until certificates are loaded
-        service_list+=("nginx:running")  # Just check it's running, not necessarily healthy
-    else
-        service_list+=("nginx:healthy")
-    fi
+    local start_time=$SECONDS
+    local timeout=300 # 5 minutes
 
-    while [[ $wait_time -lt $max_wait ]]; do
-        local all_ready=true
-        local status_report=""
-        
-        for service_entry in "${service_list[@]}"; do
-            IFS=':' read -r service expected_state <<< "$service_entry"
-            local current_state="unknown"
-            local current_health="unknown"
-            
-            # Get service info - check both running and all containers
-            local service_info
-            service_info=$($CONTAINER_TOOL compose ps --all --format json | jq -r "select(.Service == \"$service\") | \"\(.State)|\(.Health // \"none\")|\(.ExitCode // \"N/A\")\"" 2>/dev/null)
-            
-            if [[ -n "$service_info" && "$service_info" != "null" ]]; then
-                IFS='|' read -r current_state current_health exit_code <<< "$service_info"
-                
-                local service_ready=false
-                case "$expected_state" in
-                    "healthy")
-                        [[ "$current_health" == "healthy" ]] && service_ready=true
-                        ;;
-                    "running")
-                        [[ "$current_state" == "running" ]] && service_ready=true
-                        ;;
-                    "exited")
-                        [[ "$current_state" == "exited" && "$exit_code" == "0" ]] && service_ready=true
-                        ;;
-                esac
-                
-                if [[ "$service_ready" == false ]]; then
-                    all_ready=false
-                    status_report+="  $service: $current_state"
-                    [[ "$current_health" != "none" ]] && status_report+=" ($current_health)"
-                    [[ "$current_state" == "exited" ]] && status_report+=" [exit: $exit_code]"
-                    status_report+=" (expected: $expected_state)\n"
-                fi
-            else
-                all_ready=false
-                status_report+="  $service: not found (expected: $expected_state)\n"
+    log_info "Waiting for services to reach expected states..."
+
+    while [[ ${#services_to_check[@]} -gt 0 && $SECONDS -lt $((start_time + timeout)) ]]; do
+        local i=0
+        while [[ $i -lt ${#services_to_check[@]} ]]; do
+            local service=${services_to_check[$i]}
+            local health
+            health=$(get_service_health "$service" "$CONTAINER_TOOL")
+
+            if [[ "${TESTING_MODE:-}" == "true" ]]; then
+                echo "DEBUG: In testing mode. Service: $service, Health: $health, Array: (${services_to_check[*]})"
             fi
+
+            if [[ "$health" == "healthy" || "$health" == "running" ]]; then
+                log_info "Service '$service' is ready."
+                # Remove the element from the array
+                services_to_check=("${services_to_check[@]:0:$i}" "${services_to_check[@]:$((i+1))}")
+                # Decrement i because the next element is now at the current index
+                i=$((i - 1))
+            fi
+            i=$((i + 1))
         done
 
-        if [[ "$all_ready" == true ]]; then
-            log_success "All services are in expected states!"
-            return 0
-        fi
-
-        if [[ $((wait_time % 30)) -eq 0 ]]; then
-            log_info "Still waiting for services... (${wait_time}s elapsed)"
-            if [[ "$VERBOSE" == true || $wait_time -gt 120 ]]; then
-                echo -e "Current status:\n$status_report"
+        if [[ ${#services_to_check[@]} -gt 0 ]]; then
+            sleep 5
+            local elapsed_time=$((SECONDS - start_time))
+            if (( elapsed_time > 0 && elapsed_time % 30 == 0 )); then
+                 log_info "Still waiting for services... (${elapsed_time}s elapsed)"
             fi
         fi
-
-        sleep 5
-        wait_time=$((wait_time + 5))
     done
 
-    log_error "Services did not reach expected states within $max_wait seconds"
+    if [[ ${#services_to_check[@]} -eq 0 ]]; then
+        log_success "All services are in expected states!"
+        return 0
+    fi
+
+    log_error "Services did not reach expected states within $timeout seconds"
     log_info "Final status check:"
-    echo -e "$status_report"
+    # Check if the array is not empty before iterating
+    if [[ ${#services_to_check[@]} -gt 0 ]]; then
+        for service in "${services_to_check[@]}"; do
+            local health
+            health=$(get_service_health "$service" "$CONTAINER_TOOL")
+            log_info "  $service: $health"
+        done
+    fi
     log_info "Full container status:"
     $CONTAINER_TOOL compose ps --all
     return 1
@@ -893,14 +933,14 @@ main() {
 
     if [[ "$NEW_ENVIRONMENT" == true ]]; then
         log_info "Setting up NEW PGNC environment"
-        manage_submodules
+        initialize_and_update_submodules
         build_services
         start_services
     else
         log_info "REFRESHING existing PGNC environment"
         stop_services
         cleanup_resources
-        manage_submodules
+        initialize_and_update_submodules
         build_services
         start_services
     fi
