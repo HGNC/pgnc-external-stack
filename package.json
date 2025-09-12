@@ -3,6 +3,8 @@
     "private": true,
     "scripts": {
         "lint:md": "npx --yes markdownlint-cli@0.42.0 \"**/*.md\" --ignore-path .markdownlintignore",
-        "lint:md:fix": "npx --yes markdownlint-cli@0.42.0 \"**/*.md\" --ignore-path .markdownlintignore --fix"
+        "lint:md:fix": "npx --yes markdownlint-cli@0.42.0 \"**/*.md\" --ignore-path .markdownlintignore --fix",
+        "lint:links": "git ls-files \"**/*.md\" | grep -v '^node_modules/' | grep -v '^.git/' | grep -v '^python/.venv/' | xargs -n1 -P4 npx --yes markdown-link-check@3.12.2 -q -c .markdown-link-check.json",
+        "lint:docs": "npm run -s lint:md && npm run -s lint:links"
     }
 }

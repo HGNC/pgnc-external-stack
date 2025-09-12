@@ -1,9 +1,15 @@
 {
-  "ignorePatterns": [
-    { "pattern": "^http://localhost(:[0-9]+)?/.*" },
-    { "pattern": "^https://img.shields.io/.*" },
-    { "pattern": "^./htmlcov/.*" }
-  ],
-  "replacementPatterns": [],
-  "timeout": "10s"
+    "ignorePatterns": [
+        {
+            "pattern": "^http://localhost(:[0-9]+)?/.*"
+        },
+        {
+            "pattern": "^https://img.shields.io/.*"
+        },
+        {
+            "pattern": "^./htmlcov/.*"
+        }
+    ],
+    "replacementPatterns": [],
+    "timeout": "10s"
 }

@@ -22,6 +22,21 @@ The stack is a containerized microservices architecture that provides a complete
 - SSL renewal setup: [SSL_RENEWAL_SETUP.md](./SSL_RENEWAL_SETUP.md)
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
 
+## Documentation Quality Checks
+
+To validate docs locally:
+
+```sh
+# Markdown style/lint
+npm run lint:md
+
+# Markdown links (ignores localhost, shields badges, and coverage output)
+npm run lint:links
+
+# Run both
+npm run lint:docs
+```
+
 ## Architecture
 
 The project relies on several microservices/components organized as Docker containers:
@@ -245,7 +260,6 @@ For detailed setup instructions, see:
 
 - 📋 **[SSL Renewal Setup Guide](./SSL_RENEWAL_SETUP.md)** - Complete configuration instructions
   
-
 > **Note**: Ignore transaction-related output messages - these are normal operation logs, not errors.
 
 Example of expected (non-error) output:

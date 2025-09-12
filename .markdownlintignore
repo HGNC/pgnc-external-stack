@@ -4,6 +4,7 @@ angular/3rdpartylicenses.md
 api/doc/
 solr/**
 **/node_modules/**
+**/.git/**
 **/dist/**
 **/build/**
 **/.next/**
