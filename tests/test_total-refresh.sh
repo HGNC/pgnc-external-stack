@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Test suite for total-refresh.sh
-# This file tests the functionality of the PGNC environment setup script
+# Test suite for total-refresh.sh (moved to tests/)
 
 set -euo pipefail
 
+# Resolve repo root regardless of where invoked
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+
 # Test framework variables
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_TO_TEST="${SCRIPT_DIR}/total-refresh.sh"
+SCRIPT_DIR="${REPO_ROOT}"
+SCRIPT_TO_TEST="${REPO_ROOT}/total-refresh.sh"
 TEST_COUNT=0
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -73,10 +75,10 @@ assert_equals() {
     
     if [[ "$expected" == "$actual" ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Expected: '$expected'"
         echo -e "  Actual:   '$actual'"
     fi
@@ -91,10 +93,10 @@ assert_contains() {
     
     if [[ "$haystack" == *"$needle"* ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Haystack: '$haystack'"
         echo -e "  Needle:   '$needle'"
     fi
@@ -108,10 +110,10 @@ assert_file_exists() {
     
     if [[ -f "$file" ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
     fi
 }
 
@@ -127,10 +129,10 @@ assert_exit_code() {
     
     if [[ "$expected_code" -eq "$actual_code" ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Expected exit code: $expected_code"
         echo -e "  Actual exit code:   $actual_code"
     fi
@@ -716,7 +718,7 @@ EOF
     output=$(timeout 15s ./test_wait.sh 2>/dev/null || echo "timeout")
     if [[ "$output" == "timeout" ]]; then
         # If timeout, assume the function is working (checking services in a loop)
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: wait_for_services function executes (timeout indicates normal behavior)"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: wait_for_services function executes (timeout indicates normal behavior)"
         TEST_COUNT=$((TEST_COUNT + 1))
         PASS_COUNT=$((PASS_COUNT + 1))
     else
@@ -1237,72 +1239,7 @@ run_all_tests() {
     fi
 }
 
-
-# Main test runner
-run_all_tests() {
-    echo -e "${TEST_BLUE}Starting test suite for total-refresh.sh${TEST_NC}"
-    echo "================================================"
-    
-    # Temporarily adjust global git config for local file protocol access.
-    # This is required for the integration test that uses local file-based git repos.
-    local original_git_config
-    original_git_config=$(git config --global --get protocol.file.allow 2>/dev/null || echo "notset")
-    git config --global protocol.file.allow always
-
-    # Run integration test separately as it manages its own environment
-    test_no_pull_integration
-
-    # Restore original git config
-    if [[ "$original_git_config" == "notset" ]]; then
-        git config --global --unset protocol.file.allow
-    else
-        git config --global protocol.file.allow "$original_git_config"
-    fi
-
-    setup_test_environment
-    
-    # Run all other test functions
-    test_log_functions
-    test_parse_arguments
-    test_check_prerequisites
-    test_validate_env_file
-    test_initialize_and_update_submodules
-    test_submodule_branch_tracking
-    test_wait_for_services
-    test_cross_platform_compatibility
-    test_show_status
-    test_show_help
-    test_script_argument_validation
-    test_ssl_functionality
-    test_certificate_renewal
-
-    # Add new test cases for --no-pull flag
-    test_no_pull_functionality
-    test_no_pull_constraints
-    
-    teardown_test_environment
-    
-    # Print test summary
-    echo
-    echo "================================================"
-    echo -e "${TEST_BLUE}Test Summary:${TEST_NC}"
-    echo -e "  Total tests: $TEST_COUNT"
-    echo -e "  ${TEST_GREEN}Passed: $PASS_COUNT${TEST_NC}"
-    echo -e "  ${TEST_RED}Failed: $FAIL_COUNT${TEST_NC}"
-    
-    if [[ $FAIL_COUNT -eq 0 ]]; then
-        echo -e "${TEST_GREEN}All tests passed!${TEST_NC}"
-        exit 0
-    else
-        echo -e "${TEST_RED}Some tests failed.${TEST_NC}"
-        exit 1
-    fi
-}
-
-# Prevent the original script's main from running during testing
-if [[ "${TESTING_MODE:-}" != "true" ]]; then
-    # Only run tests if script is executed directly
-    if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-        run_all_tests "$@"
-    fi
+# Only run tests if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    run_all_tests "$@"
 fi

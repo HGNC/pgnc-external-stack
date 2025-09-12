@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Test suite for cert-renewal.sh
-# This file tests the functionality of the dedicated certificate renewal script
+# Test suite for cert-renewal.sh (moved to tests/)
 
 set -euo pipefail
 
+# Resolve repo root regardless of where invoked
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+
 # Test framework variables
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CERT_SCRIPT="${SCRIPT_DIR}/cert-renewal.sh"
+SCRIPT_DIR="$REPO_ROOT"
+CERT_SCRIPT="${REPO_ROOT}/cert-renewal.sh"
 TEST_COUNT=0
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -81,10 +83,10 @@ assert_equals() {
     
     if [[ "$expected" == "$actual" ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Expected: '$expected'"
         echo -e "  Actual:   '$actual'"
     fi
@@ -99,10 +101,10 @@ assert_contains() {
     
     if [[ "$haystack" == *"$needle"* ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Haystack: '$haystack'"
         echo -e "  Needle:   '$needle'"
     fi
@@ -120,10 +122,10 @@ assert_exit_code() {
     
     if [[ "$expected_code" -eq "$actual_code" ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: $message"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: $message"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: $message"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: $message"
         echo -e "  Expected exit code: $expected_code"
         echo -e "  Actual exit code:   $actual_code"
     fi
@@ -160,11 +162,11 @@ test_cert_renewal_invalid_tool() {
     if [[ -n "$output" ]]; then
         TEST_COUNT=$((TEST_COUNT + 1))
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: Should show valid container tool error"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: Should show valid container tool error"
     else
         TEST_COUNT=$((TEST_COUNT + 1))
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: Should show valid container tool error"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: Should show valid container tool error"
     fi
 }
 
@@ -224,10 +226,10 @@ EOF
     # Check that timestamp format is present (YYYY-MM-DD HH:MM:SS)
     if [[ "$output" =~ \[([0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2})\] ]]; then
         PASS_COUNT=$((PASS_COUNT + 1))
-        echo -e "${TEST_GREEN}✓ PASS${TEST_NC}: Should include timestamp in log format"
+        echo -e "${TEST_GREEN}\u2713 PASS${TEST_NC}: Should include timestamp in log format"
     else
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo -e "${TEST_RED}✗ FAIL${TEST_NC}: Should include timestamp in log format"
+        echo -e "${TEST_RED}\u2717 FAIL${TEST_NC}: Should include timestamp in log format"
     fi
     TEST_COUNT=$((TEST_COUNT + 1))
 }

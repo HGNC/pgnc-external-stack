@@ -421,6 +421,27 @@ See [python/README.md](./python/README.md) for detailed Python component documen
 
 The project includes comprehensive test suites:
 
+### Shell Tests
+
+- **Location**: `tests/`
+- **What**: Bash tests for `total-refresh.sh` and `cert-renewal.sh`
+- **Run (npm)**:
+
+```sh
+npm run test:shell        # run both suites
+npm run test:shell:total  # total-refresh only
+npm run test:shell:certs  # cert-renewal only
+```
+
+- **Run (direct)**:
+
+```sh
+bash tests/test_total-refresh.sh
+bash tests/test_cert-renewal.sh
+```
+
+Prerequisites: macOS/Linux shell, `bash`, and typical coreutils. Tests create temp dirs and mock dependencies; they do not modify your repo.
+
 ### Python Tests
 
 - **Location**: `python/tests/`
@@ -489,9 +510,13 @@ docker volume prune
 
 ## Security
 
-- Do not commit real secrets (API keys, passwords) to the repository. Use `sample.env` as a template and keep your real `.env` local.
-- Replace example credentials with placeholders in docs where necessary.
-- If any secret has been committed previously, rotate it immediately and force-push no history rewrites into shared branches without coordination.
+- **Never commit secrets:** Keep real values only in your local `.env` (confirmed in `.gitignore`). Use `sample.env` as the template with placeholders only.
+- **Where to store keys:**
+  - CLI: `.env`
+  - VS Code MCP tools: `.vscode/mcp.json` env section (keys only)
+  - All other config (models, params) lives in `.taskmaster/config.json` managed via `task-master models`.
+- **Rotation:** If a key is ever exposed, rotate it immediately in the provider dashboard and replace locally. Consider invalidating sessions/tokens as required.
+- **Docs hygiene:** Use placeholders in documentation; do not paste real tokens or JWTs into examples.
 
 ## Technology Stack
 
