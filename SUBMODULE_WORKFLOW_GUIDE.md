@@ -109,13 +109,66 @@ Based on `.gitmodules`, here are the submodules and their target branches:
 
 #### If you accidentally committed in detached HEAD
 
+Use one of the following methods to recover your work safely.
+
+Method A — still on the detached commit
+
+```bash
+# In the submodule directory (currently on a detached commit)
+git rev-parse --short HEAD  # Optional: note the commit SHA
+
+# Create a temporary branch to save your work
+REC="recovery-$(date +%Y%m%d-%H%M%S)"
+git branch "$REC"
+
+# Switch to the correct target branch and update it
+git checkout main   # or dev, depending on the submodule
+git pull --ff-only origin main
+
+# Merge the recovery branch and push
+git merge --no-ff "$REC" -m "Recover detached HEAD commit"
+git push origin main
+
+# Clean up the temporary branch
+git branch -d "$REC"
+```
+
+Method B — you left the state or only have a commit hash
+
 ```bash
 # In the submodule directory
-git branch backup-branch  # Save your work
-git checkout main
-git merge backup-branch
+# Replace <SHA> with the detached commit hash (from reflog/notes/PR, etc.)
+git cat-file -e <SHA> 2>/dev/null || echo "Commit not found locally"
+
+# Create a recovery branch from that commit
+REC="recovery-$(date +%Y%m%d-%H%M%S)"
+git branch "$REC" <SHA>
+
+# Switch to the correct target branch and update it
+git checkout main   # or dev, depending on the submodule
+git pull --ff-only origin main
+
+# Merge the recovery branch and push
+git merge --no-ff "$REC" -m "Recover detached commit <SHA>"
 git push origin main
+
+# Clean up the temporary branch
+git branch -d "$REC"
 ```
+
+After recovery, update the parent repository to record the new submodule commit:
+
+```bash
+# From the parent repository root
+git add path/to/submodule
+git commit -m "Update submodule to include recovered commit"
+git push
+```
+
+Notes:
+
+- Prefer `--ff-only` pulls to avoid unintended merge commits on the target branch.
+- Use the correct target branch (`main` or `dev`) for each submodule as documented above.
 
 #### If submodule appears modified but you haven't changed anything
 
