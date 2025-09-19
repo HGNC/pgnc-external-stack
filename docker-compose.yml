@@ -70,7 +70,7 @@ services:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
       # Persist data and cores
-      - ./solr/cores:/var/solr
+      - ./solr/cores/data:/var/solr/data
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"]
       interval: 10s
