@@ -77,7 +77,8 @@ services:
       # Persist data and cores
       - ./solr/cores/data:/var/solr/data
     depends_on:
-      - solr-init
+      solr-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"]
       interval: 10s
