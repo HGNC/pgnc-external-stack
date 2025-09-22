@@ -57,6 +57,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+  solr-init:
+    image: busybox:latest
+    volumes:
+      - ./solr/cores/data:/var/solr/data
+    command: chown -R 8983:8983 /var/solr/data
   solr:
     build:
       context: solr/.
@@ -71,6 +76,8 @@ services:
     volumes:
       # Persist data and cores
       - ./solr/cores/data:/var/solr/data
+    depends_on:
+      - solr-init
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"]
       interval: 10s
