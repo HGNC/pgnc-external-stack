@@ -41,8 +41,6 @@ services:
       SOLR_USERNAME: ${SOLR_CLIENT_USER}
       SOLR_PASSWORD: ${SOLR_CLIENT_PASSWORD}
     depends_on:
-      solr:
-        condition: service_healthy
       python:
         condition: service_completed_successfully
     volumes:
@@ -228,8 +226,6 @@ services:
       angular:
         condition: service_healthy
       solr-client:
-        condition: service_healthy
-      api:
         condition: service_healthy
     healthcheck:
       test:
