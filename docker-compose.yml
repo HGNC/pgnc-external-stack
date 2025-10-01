@@ -15,7 +15,7 @@ services:
       SOLR_PASSWORD: ${SOLR_ADMIN_PASSWORD}
       SOLR_HOST: ${SOLR_HOST}
       SOLR_PORT: ${SOLR_PORT}
-    restart: "no"
+    restart: on-failure:3
     volumes:
       - ./python/output:/usr/src/app/output
       - ./python/input:/usr/src/app/input
@@ -112,10 +112,10 @@ services:
           "CMD-SHELL",
           "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB && psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1 FROM init_completion'",
         ]
-      interval: 120s
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 120s
+      retries: 30
+      start_period: 30s
     depends_on:
       - pgnc-data
   api:
