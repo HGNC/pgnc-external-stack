@@ -9,7 +9,6 @@ Let's Encrypt SSL certificates expire every 90 days. To prevent service interrup
 ## Files Added
 
 - `cert-renewal.sh` - Standalone script for certificate renewal (cron-friendly)
-- Enhanced `total-refresh.sh` with `--renew-certs` option
 
 ## Setup Instructions
 
@@ -18,10 +17,7 @@ Let's Encrypt SSL certificates expire every 90 days. To prevent service interrup
 First, test that the renewal process works manually:
 
 ```bash
-# Test the renewal functionality
-./total-refresh.sh --container-tool docker --renew-certs
-
-# Or use the dedicated renewal script
+# Test the renewal functionality using the dedicated renewal script
 ./cert-renewal.sh docker
 ```
 
@@ -70,9 +66,6 @@ sudo launchctl list | grep cron  # macOS
 You can manually renew certificates at any time:
 
 ```bash
-# Using the main script
-./total-refresh.sh --container-tool docker --renew-certs
-
 # Using the dedicated renewal script
 ./cert-renewal.sh docker
 ```
@@ -91,8 +84,8 @@ You can manually renew certificates at any time:
 
    ```bash
    docker compose ps nginx
-   # If not running, start the full environment first
-   ./total-refresh.sh --container-tool docker --ssl
+   # If not running, start the environment first
+   ./RUN.sh
    ```
 
 3. **Missing credentials**: Ensure `certbot/gcp-key.json` exists and is valid

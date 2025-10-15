@@ -1,5 +1,0 @@
-{
-  "plugins": ["prettier-plugin-python"],
-  "tabWidth": 4,
-  "printWidth": 100
-}

@@ -65,7 +65,7 @@ The project relies on several microservices/components organized as Docker conta
 
 ## Prerequisites
 
-- **Container Runtime**: Docker, Podman, or OrbStack for building and running containers
+- **Container Runtime**: Docker (required for `RUN.sh`); Podman or OrbStack are supported only when managing containers manually
 - **Git**: For cloning the repository and submodules
 - **Google Cloud Platform Access** (for SSL):
   - `gcp-key.json`: Service account key file with Cloud DNS access
@@ -78,7 +78,7 @@ The project relies on several microservices/components organized as Docker conta
 
 ### Method 1: Automated Setup (Recommended)
 
-The `total-refresh.sh` script provides automated environment setup and management for the PGNC stack. This is the recommended approach for both new installations and regular maintenance.
+The `RUN.sh` script provides automated environment setup for fresh installations of the PGNC stack. This is the recommended approach for new installations.
 
 #### New Environment Setup
 
@@ -95,85 +95,31 @@ cp sample.env .env
 # If using SSL add your gcp-key.json to certbot
 cp ../gcp-key.json certbot/gcp-key.json
 
-# Set up new environment with Docker
-./total-refresh.sh --new --container-tool docker
-
-# Or with Podman
-./total-refresh.sh --new --container-tool podman
-
-# Using SSL then run the above with --ssl
-./total-refresh.sh --new --container-tool docker --ssl
-```
-
-#### Script Options
-
-- `--new`: Sets up a new environment, building all containers from scratch.
-- `--container-tool <docker|podman>`: Specifies the container runtime to use.
-- `--ssl`: Enables SSL and manages certificates.
-- `--renew-certs`: Renews SSL certificates without a full environment refresh.
-- `--clean-volumes`: Removes all Docker volumes, deleting persistent data (e.g., database and search indexes). **Use with caution.**
-- `--no-pull`: Skips pulling the latest code from Git repositories. This is useful for development when you want to test local changes without them being overwritten. Cannot be used with `--new` or `--renew-certs`.
-- `--verbose`: Enables detailed logging for debugging.
-- `--help`: Displays the help message.
-
-#### Common Use Cases
-
-**Refresh existing environment (pulls latest code and rebuilds):**
-
-```bash
-./total-refresh.sh --container-tool docker
-```
-
-**Refresh with SSL certificate generation:**
-
-```bash
-./total-refresh.sh --container-tool docker --ssl
-```
-
-**Certificate renewal only (for cron jobs):**
-
-```bash
-./total-refresh.sh --container-tool docker --renew-certs
-```
-
-**Clean refresh (removes all volumes - destroys data!):**
-
-```bash
-./total-refresh.sh --container-tool docker --clean-volumes
-```
-
-**Run refresh without pulling code (for local development):**
-
-```bash
-./total-refresh.sh --container-tool docker --no-pull
+# Set up new environment
+./RUN.sh
 ```
 
 #### Script Features
 
-- **Automated Dependency Checking**: Validates Docker/Podman, Git, and jq installation
-- **Environment Validation**: Checks `.env` file configuration and required variables
-- **Submodule Management**: Handles Git submodule initialization and updates with fallback strategies
-- **Service Orchestration**: Manages proper startup sequence and health monitoring
-- **SSL Support**: Optional Let's Encrypt certificate generation with Certbot
-- **Resource Cleanup**: Intelligent cleanup of unused containers, images, and optionally volumes
-- **Health Monitoring**: Waits for all services to reach healthy state (up to 10 minutes)
-- **Status Reporting**: Displays service status and access URLs upon completion
+The `RUN.sh` script is designed for fresh installations and provides:
+
+- **Prerequisites Validation**: Checks for Docker, jq, and required files
+- **Environment Validation**: Validates `.env` file configuration
+- **Automated Build**: Builds all container images from scratch
+- **Service Orchestration**: Starts services in proper dependency order
+- **Health Monitoring**: Waits for all services to reach ready state
+- **Status Reporting**: Shows service status and access URLs
 
 #### Script Options
 
-| Option | Description |
-|--------|-------------|
-| `--new` | Set up a new environment from scratch |
-| `--container-tool TOOL` | Container tool to use (`docker` or `podman`) **[Required]** |
-| `--ssl` | Enable SSL certificate generation with Certbot |
-| `--renew-certs` | Renew SSL certificates only (no full refresh) |
-| `--clean-volumes` | Remove all volumes during cleanup ⚠️ **Destroys all data** |
-| `--verbose` | Enable verbose output for debugging |
-| `--help` | Show detailed help information |
+```bash
+# Display help information
+./RUN.sh --help
+```
 
-#### Prerequisites for Script
+#### Prerequisites for RUN.sh
 
-- **Container Runtime**: Docker or Podman with Compose plugin
+- **Container Runtime**: Docker with Compose plugin
 - **Git**: For repository and submodule management
 - **jq**: For JSON parsing of container status
 
@@ -183,7 +129,6 @@ cp ../gcp-key.json certbot/gcp-key.json
   
   # Ubuntu/Debian
   sudo apt-get install jq
-
   
   # CentOS/RHEL
   sudo yum install jq
@@ -237,11 +182,7 @@ docker compose run --rm certbot
 Let's Encrypt certificates expire every 90 days. The PGNC stack includes automated renewal functionality to prevent service interruption:
 
 ```bash
-# Manual certificate renewal
-./total-refresh.sh --container-tool docker --renew-certs
-
-
-# Or use the dedicated renewal script
+# Manual certificate renewal using the dedicated renewal script
 ./cert-renewal.sh docker
 ```
 
@@ -273,53 +214,35 @@ Hook '--manual-cleanup-hook' for plant.genenames.org ran with error output:
 
 ## Development & Maintenance
 
-### Using the total-refresh.sh Script (Recommended)
+### Fresh Installation
 
-The automated script handles most maintenance tasks:
+For new environments, use the `RUN.sh` script:
 
 ```bash
-# Standard refresh (updates code, rebuilds containers)
-./total-refresh.sh --container-tool docker
-
-# Refresh with SSL certificate renewal
-./total-refresh.sh --container-tool docker --ssl
-
-# Certificate renewal only (for cron jobs)
-./total-refresh.sh --container-tool docker --renew-certs
-
-# Deep clean refresh (removes all data volumes)
-./total-refresh.sh --container-tool docker --clean-volumes
-
-
-# Verbose output for troubleshooting
-./total-refresh.sh --container-tool docker --verbose
+# Set up new environment from scratch
+./RUN.sh
 ```
 
-#### What the Script Does
+### SSL Certificate Management
 
-**For New Environments (`--new` flag)**:
+For SSL certificate renewal:
 
-1. Validates system prerequisites (Docker/Podman, Git, jq)
+```bash
+# Certificate renewal (for cron jobs)
+./cert-renewal.sh docker
+```
 
+#### What RUN.sh Does
+
+**For Fresh Installations**:
+
+1. Validates system prerequisites (Docker, Git, jq)
 2. Checks environment configuration (`.env` file)
-3. Initializes Git submodules from scratch
-4. Builds all container images with fresh cache
+3. Ensures Git submodules are initialized
+4. Builds all container images with clean cache
 5. Starts services in proper dependency order
 6. Monitors service health until all are ready
-7. Optionally generates SSL certificates
-8. Displays status and access URLs
-
-**For Environment Refresh (default)**:
-
-1. Stops all running services gracefully
-2. Cleans up unused containers, images, and networks
-
-3. Optionally removes data volumes (with `--clean-volumes`)
-4. Updates Git submodules with fallback strategies
-5. Rebuilds all container images
-6. Restarts services with health monitoring
-7. Optionally renews SSL certificates
-8. Reports final status
+7. Displays status and access URLs
 
 #### Service Health Monitoring
 
@@ -331,27 +254,21 @@ The script monitors different service types appropriately:
 
 Timeout: 10 minutes with progress updates every 30 seconds.
 
-#### Troubleshooting with the Script
+#### Troubleshooting with RUN.sh
 
 ```bash
 # Check what the script requires
-./total-refresh.sh --help
-
-# Run with verbose output
-./total-refresh.sh --container-tool docker --verbose
+./RUN.sh --help
 
 # If services fail to start, check logs
-
 docker compose logs -f
 
-# For submodule issues, the script provides manual commands
+# For submodule issues, initialize manually
 git submodule status
-
-git submodule deinit --all -f
 git submodule update --init --recursive
 ```
 
-#### Script Error Handling
+#### RUN.sh Error Handling
 
 The script uses `set -euo pipefail` for strict error handling:
 
@@ -360,11 +277,9 @@ The script uses `set -euo pipefail` for strict error handling:
 
 Common error scenarios and solutions:
 
-- **Missing container tool**: Install Docker or Podman with Compose plugin
+- **Missing Docker**: Install Docker with Compose plugin
 - **Missing jq**: Install jq for JSON parsing (`brew install jq` on macOS)
-
 - **Invalid .env**: Copy `sample.env` to `.env` and configure all required variables
-- **Submodule failures**: Script provides fallback strategies and manual recovery commands
 - **Service health timeouts**: Check container logs for specific service errors
 
 The script provides colored output:
@@ -424,19 +339,16 @@ The project includes comprehensive test suites:
 ### Shell Tests
 
 - **Location**: `tests/`
-- **What**: Bash tests for `total-refresh.sh` and `cert-renewal.sh`
+- **What**: Bash tests for `cert-renewal.sh`
 - **Run (npm)**:
 
 ```sh
-npm run test:shell        # run both suites
-npm run test:shell:total  # total-refresh only
-npm run test:shell:certs  # cert-renewal only
+npm run test:shell
 ```
 
 - **Run (direct)**:
 
 ```sh
-bash tests/test_total-refresh.sh
 bash tests/test_cert-renewal.sh
 ```
 
