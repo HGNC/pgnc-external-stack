@@ -29,3 +29,5 @@ tasks.json
 tasks/
 
 .taskmaster/
+
+.markdownlintignore
