@@ -26,10 +26,6 @@
 	path = python
 	url = https://github.com/HGNC/pgnc_solr_load.git
 	branch = main
-[submodule "solr-client"]
-	path = solr-client
-	url = https://github.com/HGNC/pgnc-solr-client.git
-	branch = main
 [submodule "certbot"]
 	path = certbot
 	url = https://github.com/HGNC/pgnc-certbot.git

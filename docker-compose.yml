@@ -28,7 +28,7 @@ services:
         condition: service_healthy
   solr-client:
     restart: on-failure
-    build: solr-client/.
+    image: ghcr.io/hgnc/pgnc-solr-client:latest
     networks:
       - pgnc-network
     ports:
