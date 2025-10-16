@@ -1,7 +1,7 @@
 ---
 services:
   python:
-    build: python/.
+    image: ghcr.io/hgnc/pgnc-python:latest
     networks:
       - pgnc-network
     environment:
@@ -61,8 +61,7 @@ services:
       - ./solr/cores/data:/var/solr/data
     command: chown -R 8983:8983 /var/solr/data
   solr:
-    build:
-      context: solr/.
+    image: ghcr.io/hgnc/pgnc-solr:latest
     shm_size: 256m
     networks:
       - pgnc-network
@@ -84,7 +83,7 @@ services:
       retries: 10
       start_period: 90s
   pgnc-data:
-    build: db-data/.
+    image: ghcr.io/hgnc/pgnc-db-data:latest
     container_name: db-data
     restart: "no"
     networks:
@@ -120,7 +119,7 @@ services:
       - pgnc-data
   api:
     restart: always
-    build: api/.
+    image: ghcr.io/hgnc/pgnc-api:latest
     networks:
       - pgnc-network
     ports:
@@ -159,8 +158,7 @@ services:
   angular:
     restart: always
     build:
-      context: angular/.
-      dockerfile: Dockerfile
+      image: ghcr.io/hgnc/pgnc-angular:latest
       args:
         - API_USER=${API_USER}
         - API_PASSWORD=${API_PASSWORD}
@@ -184,9 +182,7 @@ services:
       retries: 5
       start_period: 20s
   certbot:
-    build:
-      context: certbot/.
-      dockerfile: Dockerfile
+    image: ghcr.io/hgnc/pgnc-certbot:latest
     container_name: certbot
     profiles: ["ssl"]
     volumes:
@@ -211,7 +207,7 @@ services:
       - "pgnc.genenames.org"
   nginx:
     restart: always
-    build: nginx/.
+    image: ghcr.io/hgnc/pgnc-nginx:latest
     networks:
       - pgnc-network
     ports:
