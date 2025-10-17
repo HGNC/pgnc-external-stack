@@ -67,7 +67,7 @@ cat >> .env << EOF
 GCP_KEY_FILE=./gcp-key.json
 GCP_PROJECT=your-gcp-project-name
 GCP_DNS_ZONE=your-dns-zone-name
-CERTBOT_EMAIL=your-email@domain.com
+MY_EMAIL=your-email@domain.com
 DOMAIN_NAME=yourdomain.com
 
 # Optional: DNS Challenge Configuration
@@ -79,19 +79,19 @@ EOF
 **Important**: Replace the placeholder values with your actual:
 - `your-gcp-project-name`: Your Google Cloud project ID
 - `your-dns-zone-name`: Your managed DNS zone name in Google Cloud DNS
-- `your-email@domain.com`: Email address for Let's Encrypt account registration
+- `your-email@domain.com`: Email address for Let's Encrypt account registration (used for `MY_EMAIL`)
 - `yourdomain.com`: Your primary domain name
 
-### 3. Build the Certbot Container
+### 3. Verify the Certbot Container
 
-Build the Certbot service container with Google Cloud DNS plugin:
+The Certbot service uses a pre-built container image with Google Cloud DNS plugin:
 
 ```bash
-# Build the Certbot container
-docker compose build certbot
-
-# Verify the build was successful
+# Verify the Certbot service is configured correctly
 docker compose --profile ssl run --rm certbot --version
+
+# This will pull the image if not already present
+# ghcr.io/hgnc/pgnc-certbot:latest
 ```
 
 ### 4. Request Your First Certificate

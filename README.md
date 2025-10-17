@@ -15,7 +15,7 @@ PGNC External Stack packages the Plant Gene Nomenclature Committee web applicati
 | `python` | built locally as `pgnc-python-local` | ETL scripts that populate PostgreSQL and prepare Solr exports. |
 | `solr-client` | `ghcr.io/hgnc/pgnc-solr-client:latest` | Authenticated gateway between the UI and Solr. |
 | `nginx` | `ghcr.io/hgnc/pgnc-nginx:latest` | Edge proxy for HTTP/HTTPS entry points. |
-| `certbot` | `ghcr.io/hgnc/pgnc-certbot:latest` | Let's Encrypt DNS-01 renewals via Google Cloud DNS. |
+|| `certbot` | `ghcr.io/hgnc/pgnc-certbot:latest` | Let's Encrypt DNS-01 renewals via Google Cloud DNS. |
 
 Named volumes persist runtime state: `pgnc-data` (PostgreSQL), `solr-data` (Solr cores), `python-input`/`python-output` (ETL workspace), and `certbot-etc` (ACME configuration and certificates).
 
@@ -65,7 +65,7 @@ The SSL setup document includes:
 
 ## Build Local Wrapper Images
 
-Three services extend upstream images to bake in the checked-in assets. Rebuild them after cloning or whenever `python/`, `db-data/`, or `solr/` change.
+Three services build locally from Dockerfiles. Rebuild them after cloning or whenever their source directories change.
 
 ```bash
 docker compose build python pgncdb solr
@@ -207,7 +207,6 @@ db-data/                     # SQL executed during PostgreSQL image build
 solr/                        # Solr core configuration copied into the Solr image
 docker/                      # Dockerfiles for python, postgres, solr wrappers
 python/                      # ETL scripts baked into the python image (bin/, data-load/, data-update/)
-certbot/                     # DNS challenge hooks and helper scripts
 sample.env                   # Environment template (copy -> .env)
 docker-compose.yml           # Service definitions, networks, volumes
 cert-renewal.sh              # Helper script for certbot container
