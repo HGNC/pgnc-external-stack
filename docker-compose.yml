@@ -1,7 +1,10 @@
 ---
 services:
   python:
-    image: ghcr.io/hgnc/pgnc-python:latest
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    image: pgnc-python-local
     networks:
       - pgnc-network
     environment:
@@ -17,10 +20,8 @@ services:
       SOLR_PORT: ${SOLR_PORT}
     restart: on-failure:3
     volumes:
-      - ./python/output:/usr/src/app/output
-      - ./python/input:/usr/src/app/input
-      - ./python/bin:/usr/src/app/bin
-      - ./db-data/docker-entrypoint-initdb.d:/usr/src/app/db-data
+      - python-input:/usr/src/app/input
+      - python-output:/usr/src/app/output
     depends_on:
       pgncdb:
         condition: service_healthy
@@ -44,7 +45,7 @@ services:
       python:
         condition: service_completed_successfully
     volumes:
-      - ./python/output:/usr/src/app/output
+      - python-output:/usr/src/app/output
     healthcheck:
       test:
         [
@@ -55,13 +56,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-  solr-init:
-    image: busybox:latest
-    volumes:
-      - ./solr/cores/data:/var/solr/data
-    command: chown -R 8983:8983 /var/solr/data
   solr:
-    image: ghcr.io/hgnc/pgnc-solr:latest
+    build:
+      context: .
+      dockerfile: docker/solr.Dockerfile
+    image: pgnc-solr-local
     shm_size: 256m
     networks:
       - pgnc-network
@@ -71,27 +70,22 @@ services:
     ports:
       - "${LOCALHOST_SOLR_PORT}:${SOLR_PORT}"
     volumes:
-      # Persist data and cores
-      - ./solr/cores/data:/var/solr/data
-    depends_on:
-      solr-init:
-        condition: service_completed_successfully
+      - solr-data:/var/solr/data
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl --fail --silent --user ${SOLR_ADMIN_USER}:${SOLR_ADMIN_PASSWORD} http://localhost:8983/solr/admin/cores?action=STATUS"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 90s
-  pgnc-data:
-    image: ghcr.io/hgnc/pgnc-db-data:latest
-    container_name: db-data
-    restart: "no"
-    networks:
-      - pgnc-network
-    volumes:
-      - pgnc-data:/var/lib/postgresql/data
   pgncdb:
-    image: docker.io/library/postgres:17.0
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+    image: pgnc-postgres-local
     container_name: pgncdb
     restart: always
     networks:
@@ -103,20 +97,17 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - ./db-data/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - pgnc-data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB && psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1 FROM init_completion'",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB && psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1 FROM init_completion'"
         ]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 30s
-    depends_on:
-      - pgnc-data
   api:
     restart: always
     image: ghcr.io/hgnc/pgnc-api:latest
@@ -156,18 +147,16 @@ services:
       retries: 5
       start_period: 20s
   angular:
+    image: ghcr.io/hgnc/pgnc-angular:latest
     restart: always
-    build:
-      image: ghcr.io/hgnc/pgnc-angular:latest
-      args:
-        - API_USER=${API_USER}
-        - API_PASSWORD=${API_PASSWORD}
     networks:
       - pgnc-network
-    ports:
-      - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
     environment:
       ANGULAR_PORT: ${ANGULAR_PORT}
+      API_USER: ${API_USER}
+      API_PASSWORD: ${API_PASSWORD}
+    ports:
+      - "${LOCALHOST_ANGULAR_PORT}:${ANGULAR_PORT}"
     depends_on:
       api:
         condition: service_healthy
@@ -175,7 +164,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -O /dev/null -q http://localhost:$${ANGULAR_PORT} || exit 1",
+          "wget -O /dev/null -q http://localhost:$${ANGULAR_PORT} || exit 1"
         ]
       interval: 10s
       timeout: 5s
@@ -239,3 +228,6 @@ networks:
 volumes:
   pgnc-data:
   certbot-etc:
+  python-input:
+  python-output:
+  solr-data:
