@@ -1,0 +1,24 @@
+
+<dataConfig>
+  <dataSource type="FileDataSource" />
+  <document>
+    <entity
+      name="pgnc"
+      processor="FileListEntityProcessor"
+      baseDir="/var/solr/data/pgnc/solr-import/"
+      fileName="pgnc_.*"
+      preImportDeleteQuery="*:*"
+      recursive="false"
+      rootEntity="false"
+      dataSource="null">
+      <entity
+        name="file"
+        processor="XPathEntityProcessor"
+        url="${hgnc.fileAbsolutePath}"
+        xsl="/var/solr/data/pgnc/conf/xslt/updateXml.xsl"
+        useSolrAddSchema="true"
+        stream="true">
+      </entity>
+    </entity>
+  </document>
+</dataConfig>

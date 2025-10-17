@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<enumsConfig>
+  <enum name="docType">
+    <value>gene</value>
+    <value>site</value>
+    <value>group</value>
+  </enum>
+  <enum name="symbolReportTags">
+    <value>Ambiguous</value>
+    <value>Placeholder symbol</value>
+    <value>Stable symbol</value>
+  </enum>
+</enumsConfig>

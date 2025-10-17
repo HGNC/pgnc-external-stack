@@ -1,0 +1,74 @@
+{
+  "authentication": {
+    "blockUnknown": true,
+    "class": "solr.BasicAuthPlugin",
+    "credentials": {
+      "admin": "c2gKGItcqfFaQsJCMZw9Z/+h8kbwh8xluxGQwjB3VFM= kAzUxj3E7R+DUlUueZ0FOgJ0Yu1E0fZ9dE6XywmeO2E=",
+      "client": "2C/60AiIpNraWpZ8y6ENlBe9ruIB0y4/5sm5snhYXAk= TCgd0e2+vSy7Hm+cROuHQQv/dphNEhUFD8pu6sAh4bk="
+    },
+    "realm": "My Solr users",
+    "forwardCredentials": false,
+    "": {
+      "v": 0
+    }
+  },
+  "authorization": {
+    "class": "solr.RuleBasedAuthorizationPlugin",
+    "permissions": [
+      {
+        "name": "security-edit",
+        "role": "admin",
+        "index": 1
+      },
+      {
+        "name": "security-read",
+        "role": "admin",
+        "index": 2
+      },
+      {
+        "name": "collection-admin-edit",
+        "role": "admin",
+        "index": 3
+      },
+      {
+        "name": "collection-admin-read",
+        "role": "admin",
+        "index": 4
+      },
+      {
+        "name": "core-admin-edit",
+        "role": "admin",
+        "index": 5
+      },
+      {
+        "name": "core-admin-read",
+        "role": "admin",
+        "index": 6
+      },
+      {
+        "name": "read",
+        "role": [
+          "client"
+        ],
+        "index": 7
+      },
+      {
+        "name": "all",
+        "role": "admin",
+        "index": 8
+      }
+    ],
+    "user-role": {
+      "admin": [
+        "admin",
+        "client"
+      ],
+      "client": [
+        "client"
+      ]
+    },
+    "": {
+      "v": 0
+    }
+  }
+}
