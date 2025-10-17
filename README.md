@@ -1,461 +1,233 @@
 # PGNC External Stack
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![Angular](https://img.shields.io/badge/Angular-19.1+-red.svg)](https://angular.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.0-blue.svg)](https://www.postgresql.org/)
-[![Apache Solr](https://img.shields.io/badge/Apache%20Solr-9.9.0-orange.svg)](https://solr.apache.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-10.x-red.svg)](https://nestjs.com/)
-
-## Overview
-
-This repository contains the external technology stack for the **PGNC (Plant Gene Nomenclature Committee)** website and database. The PGNC provides standardized gene nomenclature for plant species, serving as a central resource for plant genomics research.
-
-The stack is a containerized microservices architecture that provides a complete web application for plant gene data management, search, and visualization.
-
-## Documentation Index
-
-- Angular docs hub: [angular/angular.md](./angular/angular.md)
-- Angular source overview: [angular/src/src.md](./angular/src/src.md)
-- Python docs hub: [python/docs/README.md](./python/docs/README.md)
-- SSL renewal setup: [SSL_RENEWAL_SETUP.md](./SSL_RENEWAL_SETUP.md)
-- Changelog: [CHANGELOG.md](./CHANGELOG.md)
-
-## Documentation Quality Checks
-
-To validate docs locally:
-
-```sh
-# Markdown style/lint
-npm run lint:md
-
-# Markdown links (ignores localhost, shields badges, and coverage output)
-npm run lint:links
-
-# Run both
-npm run lint:docs
-```
-
-## Architecture
-
-The project relies on several microservices/components organized as Docker containers:
-
-### Frontend & API
-
-- **[pgnc-ext-angular](https://github.com/HGNC/pgnc-ext-angular)**: Angular frontend application for the website. See [Angular Documentation](./angular/angular.md) for technical details.
-- **[pgnc-api](https://github.com/HGNC/pgnc-api)**: NestJS REST API providing backend services for the website and public API endpoints.
-
-### Search & Indexing
-
-- **[pgnc-solr](https://github.com/HGNC/pgnc-solr)**: Apache Solr search engine for fast gene data retrieval with BasicAuth security enabled.
-- **[pgnc-solr-client](https://github.com/HGNC/pgnc-solr-client)**: Server-side client that provides a secure interface between the frontend and Solr.
-- **[pgnc_solr_load](https://github.com/HGNC/pgnc_solr_load)**: Initial data loading service that populates Solr with indexed gene data from the database.
-- **python/**: Python utilities for data processing and Solr index management, including:
-  - Data loading and updating scripts
-  - Gene model definitions
-  - Comprehensive test suites
-
-### Data & Infrastructure  
-
-- **[pgnc_db_schema](https://github.com/HGNC/pgnc_db_schema)**: PostgreSQL database schema and initial data (gzipped).
-- **[pgnc-ext-solr-data](https://github.com/HGNC/pgnc-ext-solr-data)**: Persistent volume for Solr search indices.
-- **[pgnc-ext-nginx](https://github.com/HGNC/pgnc-ext-nginx)**: Reverse proxy and load balancer for external-facing components.
-- **[pgnc-certbot](https://github.com/HGNC/pgnc-certbot)**: SSL certificate management using Let's Encrypt.
-
-## Prerequisites
-
-- **Container Runtime**: Docker (required for `RUN.sh`); Podman or OrbStack are supported only when managing containers manually
-- **Git**: For cloning the repository and submodules
-- **Google Cloud Platform Access** (for SSL):
-  - `gcp-key.json`: Service account key file with Cloud DNS access
-  - Place in the `certbot/` directory for SSL certificate management
-- **Environment Configuration**:
-  - `.env` file: Copy `sample.env` to `.env` and configure for your environment
-  - Contains database credentials, API keys, Solr authentication credentials, and service configurations
-
-## Quick Start
-
-### Method 1: Automated Setup (Recommended)
-
-The `RUN.sh` script provides automated environment setup for fresh installations of the PGNC stack. This is the recommended approach for new installations.
-
-#### New Environment Setup
-
-```bash
-# Clone the repository
-git clone --recursive https://github.com/HGNC/pgnc-external-stack.git
-cd pgnc-external-stack
-
-# Configure environment variables
-cp sample.env .env
-# Edit .env with your specific configuration
-# You could also cp a .env into the root of the project
-
-# If using SSL add your gcp-key.json to certbot
-cp ../gcp-key.json certbot/gcp-key.json
-
-# Set up new environment
-./RUN.sh
-```
-
-#### Script Features
-
-The `RUN.sh` script is designed for fresh installations and provides:
-
-- **Prerequisites Validation**: Checks for Docker, jq, and required files
-- **Environment Validation**: Validates `.env` file configuration
-- **Automated Build**: Builds all container images from scratch
-- **Service Orchestration**: Starts services in proper dependency order
-- **Health Monitoring**: Waits for all services to reach ready state
-- **Status Reporting**: Shows service status and access URLs
-
-#### Script Options
-
-```bash
-# Display help information
-./RUN.sh --help
-```
-
-#### Prerequisites for RUN.sh
-
-- **Container Runtime**: Docker with Compose plugin
-- **Git**: For repository and submodule management
-- **jq**: For JSON parsing of container status
-
-  ```bash
-  # macOS
-  brew install jq
-  
-  # Ubuntu/Debian
-  sudo apt-get install jq
-  
-  # CentOS/RHEL
-  sudo yum install jq
-  ```
-
-- **Environment File**: Valid `.env` file (copy from `sample.env`)
-- **SSL (Optional)**: Google Cloud credentials in `certbot/gcp-key.json`
-
-### Method 2: Manual Setup
-
-For users who prefer manual control or are on Windows:
-
-```bash
-# Clone the repository with all submodules
-git clone --recursive https://github.com/HGNC/pgnc-external-stack.git
-
-# Enter the project directory
-cd pgnc-external-stack
-
-# Configure environment variables
-cp sample.env .env
-# Edit .env with your specific configuration
-
-# Start all services
-docker compose up -d
-
-# Or using Podman
-podman compose up -d
-```
-
-### Accessing the Application
-
-- **Website**: <http://localhost:8080> <!-- markdown-link-check-disable-line (dev endpoint) -->
-- **API Documentation**: <http://localhost:3000/api> <!-- markdown-link-check-disable-line (dev endpoint) -->
-- **Solr Admin**: <http://localhost:8983/solr> (Apache Solr 9.9.0)
-
-## SSL/HTTPS Setup
-
-To enable SSL certificates for production deployment:
-
-```bash
-# Build the certbot container
-docker compose build certbot
-
-# Generate SSL certificates
-docker compose run --rm certbot
-```
-
-### SSL Certificate Auto-Renewal
-
-Let's Encrypt certificates expire every 90 days. The PGNC stack includes automated renewal functionality to prevent service interruption:
-
-```bash
-# Manual certificate renewal using the dedicated renewal script
-./cert-renewal.sh docker
-```
-
-**For automated renewal with cron**:
-
-```bash
-# Edit crontab to run twice daily
-crontab -e
-
-
-# Add this line (adjust path to your project directory):
-30 2,14 * * * cd /path/to/pgnc-external-stack && ./cert-renewal.sh docker >> /var/log/pgnc-cert-renewal.log 2>&1
-```
-
-For detailed setup instructions, see:
-
-- 📋 **[SSL Renewal Setup Guide](./SSL_RENEWAL_SETUP.md)** - Complete configuration instructions
-  
-> **Note**: Ignore transaction-related output messages - these are normal operation logs, not errors.
-
-Example of expected (non-error) output:
-
-```text
-Hook '--manual-cleanup-hook' for plant.genenames.org ran with error output:
- Transaction started [transaction.yaml].
- Record removal appended to transaction at [transaction.yaml].
- Executed transaction [transaction.yaml] for managed-zone [genenames-org].
-```
-
-## Development & Maintenance
-
-### Fresh Installation
-
-For new environments, use the `RUN.sh` script:
-
-```bash
-# Set up new environment from scratch
-./RUN.sh
-```
-
-### SSL Certificate Management
-
-For SSL certificate renewal:
-
-```bash
-# Certificate renewal (for cron jobs)
-./cert-renewal.sh docker
-```
-
-#### What RUN.sh Does
-
-**For Fresh Installations**:
-
-1. Validates system prerequisites (Docker, Git, jq)
-2. Checks environment configuration (`.env` file)
-3. Ensures Git submodules are initialized
-4. Builds all container images with clean cache
-5. Starts services in proper dependency order
-6. Monitors service health until all are ready
-7. Displays status and access URLs
-
-#### Service Health Monitoring
-
-The script monitors different service types appropriately:
-
-- **Long-running services** (database, API, frontend, Solr): Must reach "healthy" status
-- **Task services** (Python data loader): Must exit with code 0
-- **Nginx**: Health depends on SSL configuration
-
-Timeout: 10 minutes with progress updates every 30 seconds.
-
-#### Troubleshooting with RUN.sh
-
-```bash
-# Check what the script requires
-./RUN.sh --help
-
-# If services fail to start, check logs
-docker compose logs -f
-
-# For submodule issues, initialize manually
-git submodule status
-git submodule update --init --recursive
-```
-
-#### RUN.sh Error Handling
-
-The script uses `set -euo pipefail` for strict error handling:
-
-- **Exit Code 0**: Successful completion
-- **Exit Code 1**: Error occurred (invalid arguments, missing dependencies, setup failure)
-
-Common error scenarios and solutions:
-
-- **Missing Docker**: Install Docker with Compose plugin
-- **Missing jq**: Install jq for JSON parsing (`brew install jq` on macOS)
-- **Invalid .env**: Copy `sample.env` to `.env` and configure all required variables
-- **Service health timeouts**: Check container logs for specific service errors
-
-The script provides colored output:
-
-- 🔵 **Blue [INFO]**: General information
-- 🟢 **Green [SUCCESS]**: Successful operations
-- 🟡 **Yellow [WARNING]**: Non-critical issues
-- 🔴 **Red [ERROR]**: Critical failures
-
-### Manual Maintenance (Alternative)
-
-For users who prefer manual control:
-
-```bash
-# Stop all services
-docker compose down
-
-# Clean up resources
-docker image prune --all --force
-docker volume prune --force  
-docker network prune --force
-
-# Update code
-git pull --recurse-submodules
-
-# Restart services
-docker compose up -d
-```
-
-### Working with Python Components
-
-The `python/` directory contains data processing utilities:
-
-```bash
-# Install Python dependencies
-cd python
-pip install -r requirements.txt
-
-# Run data loading scripts
-python bin/data-load/main.py
-
-
-# Run data update scripts  
-python bin/data-update/main.py
-
-# Run tests
-pytest tests/
-
-```
-
-See [python/README.md](./python/README.md) for detailed Python component documentation.
-
-## Testing
-
-The project includes comprehensive test suites:
-
-### Shell Tests
-
-- **Location**: `tests/`
-- **What**: Bash tests for `cert-renewal.sh`
-- **Run (npm)**:
-
-```sh
-npm run test:shell
-```
-
-- **Run (direct)**:
-
-```sh
-bash tests/test_cert-renewal.sh
-```
-
-Prerequisites: macOS/Linux shell, `bash`, and typical coreutils. Tests create temp dirs and mock dependencies; they do not modify your repo.
-
-### Python Tests
-
-- **Location**: `python/tests/`
-- **Framework**: pytest with comprehensive coverage
-- **Coverage**: Gene models, data processing, API integrations
-- **Run**: `cd python && pytest tests/ -v`
-
-### Frontend Tests  
-
-- **Framework**: Jest (replaces deprecated Karma)
-- **Location**: `angular/src/`
-- **Run**: `cd angular && npm test`
-
-### API Tests
-
-- **Framework**: Jest with NestJS testing utilities
-- **Location**: `api/src/`
-- **Run**: `cd api && npm test`
-
-For detailed testing information, see [python/TESTING_SUMMARY.md](./python/TESTING_SUMMARY.md).
-
-## Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-
-3. **Commit** your changes: `git commit -m 'Add amazing feature'`
-4. **Test** your changes thoroughly
-5. **Push** to your branch: `git push origin feature/amazing-feature`
-6. **Submit** a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style and conventions
-- Include tests for new functionality
-- Update documentation as needed
-- Ensure all tests pass before submitting PR
-
-## Troubleshooting
-
-### Common Issues
-
-**Port Conflicts**: If you see port binding errors, check that ports 8080, 3000, 8983, 5432 are available.
-
-**Docker Issues**: Try cleaning up Docker resources:
-
-```bash
-docker system prune -a
-docker volume prune
-```
-
-**Database Connection**: Verify your `.env` file has correct database credentials.
-
-**SSL Certificate Issues**: Ensure your GCP service account has proper DNS permissions.
-
-## Documentation
-
-- [Python Components](./python/README.md)
-- [Angular Frontend](./angular/angular.md)  
-- [Testing Guide](./python/TESTING_SUMMARY.md)
-- [Pylance Configuration](./python/PYLANCE_CONFIG.md)
-- [SSL Certificate Renewal Setup](./SSL_RENEWAL_SETUP.md)
-- [Changelog](./CHANGELOG.md)
-
-## Security
-
-- **Never commit secrets:** Keep real values only in your local `.env` (confirmed in `.gitignore`). Use `sample.env` as the template with placeholders only.
-- **Where to store keys:**
-  - CLI: `.env`
-  - VS Code MCP tools: `.vscode/mcp.json` env section (keys only)
-  - All other config (models, params) lives in `.taskmaster/config.json` managed via `task-master models`.
-- **Rotation:** If a key is ever exposed, rotate it immediately in the provider dashboard and replace locally. Consider invalidating sessions/tokens as required.
-- **Docs hygiene:** Use placeholders in documentation; do not paste real tokens or JWTs into examples.
-
-## Technology Stack
-
-- **Frontend**: Angular 19.1+, TypeScript, RxJS
-- **Backend**: NestJS 10.x, Node.js, TypeScript  
-- **Database**: PostgreSQL 17.0
-- **Search**: Apache Solr 9.9.0
-- **Containers**: Docker/Podman with Docker Compose
-- **Web Server**: Nginx (reverse proxy)
-- **SSL**: Let's Encrypt with Certbot
-- **Data Processing**: Python 3.13+
-- **Testing**: Jest, pytest 8.4+
-- **Cloud**: Google Cloud Platform (DNS management)
-
-## License
-
-This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-- **Commercial Use**: Permitted with source disclosure
-- **Distribution**: Must include license and copyright notice  
-- **Patent Use**: Expressly granted
-- **Private Use**: Permitted
-- **Network Use**: Must provide source code
-
-See the [LICENSE](LICENSE) file for the complete terms.
+PGNC External Stack packages the Plant Gene Nomenclature Committee web application, public API, search infrastructure, and supporting ETL tooling into a reproducible Docker Compose deployment. The repository includes the Compose definition, Docker wrapper images that embed seed data, and helper scripts needed to run the stack locally or in small-team environments.
 
 ---
 
-**Plant Gene Nomenclature Committee (PGNC)**  
-*Standardizing plant gene nomenclature for the global research community*
+## Contents
+
+| Service | Image | Role |
+| ------- | ----- | ---- |
+| `angular` | `ghcr.io/hgnc/pgnc-angular:latest` | Angular UI; runtime credentials injected from environment variables. |
+| `api` | `ghcr.io/hgnc/pgnc-api:latest` | NestJS backend for UI and public clients. |
+| `pgncdb` | built locally as `pgnc-postgres-local` | PostgreSQL 17 seeded from `db-data/docker-entrypoint-initdb.d/`. |
+| `solr` | built locally as `pgnc-solr-local` | Apache Solr 9 core seeded from `solr/cores/data/`. |
+| `python` | built locally as `pgnc-python-local` | ETL scripts that populate PostgreSQL and prepare Solr exports. |
+| `solr-client` | `ghcr.io/hgnc/pgnc-solr-client:latest` | Authenticated gateway between the UI and Solr. |
+| `nginx` | `ghcr.io/hgnc/pgnc-nginx:latest` | Edge proxy for HTTP/HTTPS entry points. |
+| `certbot` | `ghcr.io/hgnc/pgnc-certbot:latest` | Let's Encrypt DNS-01 renewals via Google Cloud DNS. |
+
+Named volumes persist runtime state: `pgnc-data` (PostgreSQL), `solr-data` (Solr cores), `python-input`/`python-output` (ETL workspace), and `certbot-etc` (ACME configuration and certificates).
+
+---
+
+## Prerequisites
+
+- Docker 24+ with the Compose plugin (`docker compose`)
+- Git
+- Bash-compatible shell with `curl` and `wget`
+- (TLS only) Google Cloud service account key with DNS management permissions
+
+---
+
+## Configure Environment Variables
+
+`sample.env` is a template. **Populate it with real credentials and rename it to `.env` before starting the stack.** Compose only reads `.env`; leaving the template untouched will cause services to fail.
+
+```bash
+cp sample.env .env
+```
+
+Edit `.env` and replace every placeholder (database credentials, Solr admin account, API user/password, JWT secrets, mail settings, host ports, etc.).
+
+### SSL/HTTPS Certificate Configuration
+
+The PGNC External Stack supports automatic SSL certificate provisioning and renewal using Let's Encrypt with Google Cloud DNS integration.
+
+**Quick Setup Summary:**
+1. Create a Google Cloud service account with DNS Admin permissions
+2. Configure SSL environment variables in `.env`
+3. Build the Certbot container and request initial certificates
+4. Set up automated renewal with cron
+
+**📋 For complete step-by-step SSL setup instructions, see [`SSL_SETUP.md`](SSL_SETUP.md)**
+
+The SSL setup document includes:
+- Detailed Google Cloud service account creation
+- Complete environment variable configuration
+- Certificate request examples (single domain, multiple domains, wildcards)
+- Automated renewal setup with cron
+- Comprehensive troubleshooting guide
+
+`.env` is ignored by Git—do not commit real secrets.
+
+---
+
+## Build Local Wrapper Images
+
+Three services extend upstream images to bake in the checked-in assets. Rebuild them after cloning or whenever `python/`, `db-data/`, or `solr/` change.
+
+```bash
+docker compose build python pgncdb solr
+```
+
+- `docker/python.Dockerfile` copies the ETL scripts and seed SQL into the Python image.
+- `docker/postgres.Dockerfile` copies the SQL migrations/dumps into `/docker-entrypoint-initdb.d/` so PostgreSQL self-seeds.
+- `docker/solr.Dockerfile` copies the Solr core and adjusts ownership for first-run seeding.
+
+---
+
+## Start the Stack
+
+```bash
+docker compose up -d
+```
+
+- Published images (Angular, API, Solr client, Nginx, Certbot) are pulled automatically.
+- Health checks ensure Solr and PostgreSQL are ready before dependent services start.
+- The Python container runs to completion, seeding the database and generating Solr exports into the `python-output` volume.
+
+Stop everything with `docker compose down`. Add `--volumes` **only** when you intentionally want to discard persisted data and certificates.
+
+---
+
+## Key Endpoints (defaults)
+
+| Endpoint | Description | Notes |
+| -------- | ----------- | ----- |
+| `http://localhost:${LOCALHOST_ANGULAR_PORT}` (default `4000`) | Angular UI | Credentials auto-filled using `API_USER` / `API_PASSWORD` from `.env`. |
+| `http://localhost:${LOCALHOST_API_PORT}` (default `3001`) | API | Authenticates with the same API credentials. |
+| `http://localhost:${LOCALHOST_SOLR_PORT}/solr` (default `8983`) | Solr admin | Basic auth via `SOLR_ADMIN_USER` / `SOLR_ADMIN_PASSWORD`. |
+| `http://localhost:${LOCALHOST_SOLR_CLIENT_PORT}` (default `3000`) | Solr client gateway | Proxies UI search traffic. |
+| `http://localhost:${LOCALHOST_NGINX_PORT}` / `https://localhost:${LOCALHOST_NGINX_SSL_PORT}` | Nginx edge proxy | Serves Angular/API and, once Certbot has run, HTTPS. |
+
+All host ports are configurable through `LOCALHOST_*` variables in `.env`.
+
+---
+
+## Routine Operations
+
+- **Regenerate data**
+  ```bash
+  docker compose run --rm python
+  ```
+  Re-runs the ETL scripts, repopulating PostgreSQL and rebuilding Solr exports.
+
+- **Inspect logs**
+  ```bash
+  docker compose logs -f <service>
+  ```
+
+- **Check status**
+  ```bash
+  docker compose ps
+  ```
+
+- **Renew SSL certificates**
+  ```bash
+  # Standard renewal (automatically detects docker/podman and restarts nginx)
+  ./cert-renewal.sh
+  
+  # Test renewal without making changes
+  ./cert-renewal.sh --dry-run
+  
+  # Force specific container tool
+  ./cert-renewal.sh --container-tool podman
+  
+  # Renew without restarting nginx
+  ./cert-renewal.sh --no-restart
+  ```
+  
+  **Certificate Management Commands:**
+  ```bash
+  # Request new certificates (first-time setup)
+  docker compose --profile ssl run --rm certbot
+  
+  # Check certificate status
+  docker compose --profile ssl run --rm certbot certificates
+  
+  # Force renewal (even if not due)
+  docker compose --profile ssl run --rm certbot renew --force-renewal
+  
+  # Test configuration without actual renewal
+  docker compose --profile ssl run --rm certbot renew --dry-run
+  ```
+  
+  **Automated Renewal with Cron:**
+  ```bash
+  # Add to crontab for twice-daily renewal checks
+  30 2,14 * * * cd /path/to/pgnc-external-stack && ./cert-renewal.sh >> /var/log/pgnc-cert-renewal.log 2>&1
+  ```
+  
+  Refer to `SSL_SETUP.md` for complete SSL setup instructions, advanced configuration, and troubleshooting.
+
+---
+
+## Testing & Linting
+
+| Area | Command | Notes |
+| ---- | ------- | ----- |
+| Shell scripts | `npm run test:shell` | Runs the tests in `tests/`. |
+| Docs | `npm run lint:docs` | Markdown formatting and link checks. |
+| Python ETL | `cd python && pytest` | Requires a local Python environment. |
+| Angular (optional) | `cd angular && npm test` | Run if you have the Angular source checked out. |
+| API (optional) | `cd api && npm test` | Run if you have the API source checked out. |
+
+---
+
+## Troubleshooting
+
+| Symptom | Suggested Checks |
+| ------- | ----------------- |
+| Service stuck in `starting` | Inspect logs; verify `.env` values and confirm the Python ETL job completed. |
+| API login returns `400`/`401` | Ensure `API_USER` / `API_PASSWORD` match the seeded credentials. |
+| Solr health check fails | Double-check admin credentials; if needed, remove `solr-data` volume and restart. |
+| **SSL Certificate Issues** | **Troubleshooting Steps** |
+| Certificate request fails | Verify `GCP_PROJECT`, `GCP_DNS_ZONE`, and DNS permissions; check `docker compose --profile ssl run --rm certbot --dry-run`. |
+| DNS challenge failures | Confirm service account has DNS Admin role; increase `GCP_DNS_PROPAGATION_WAIT` if needed. |
+| Authentication errors | Verify `GCP_KEY_FILE` path exists and contains valid service account JSON; check `GOOGLE_APPLICATION_CREDENTIALS` mount. |
+| Renewal script failures | Run `./cert-renewal.sh --dry-run` first; check Docker/Podman is running; verify compose file syntax. |
+| Nginx not restarting | Ensure nginx service is running; check `docker compose ps nginx`; verify SSL profile configuration. |
+| Port binding failures | Adjust `LOCALHOST_*` variables or free the conflicting host port. |
+
+To reset a stateful service completely, stop the stack and remove the relevant volume. Example:
+
+```bash
+docker compose down
+docker volume rm pgnc-external-stack_pgnc-data
+docker compose up -d
+```
+
+---
+
+## Repository Layout
+
+```
+db-data/                     # SQL executed during PostgreSQL image build
+solr/                        # Solr core configuration copied into the Solr image
+docker/                      # Dockerfiles for python, postgres, solr wrappers
+python/                      # ETL scripts baked into the python image (bin/, data-load/, data-update/)
+certbot/                     # DNS challenge hooks and helper scripts
+sample.env                   # Environment template (copy -> .env)
+docker-compose.yml           # Service definitions, networks, volumes
+cert-renewal.sh              # Helper script for certbot container
+SSL_SETUP.md                 # Complete SSL certificate setup and renewal guide
+LICENSE                      # AGPL-3.0 license text
+```
+
+---
+
+## Contributing
+
+1. Fork the repository and create a feature branch (`git checkout -b feature/my-change`).
+2. Make your updates and add/adjust tests as needed.
+3. Run the relevant test suites or rebuild affected images.
+4. Open a pull request describing the change and validation steps.
+
+Please do not commit real credentials. Keep secrets exclusively in your local `.env`.
+
+---
+
+## License
+
+PGNC External Stack is distributed under the GNU Affero General Public License v3.0. See `LICENSE` for the full text.

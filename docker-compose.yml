@@ -171,29 +171,42 @@ services:
       retries: 5
       start_period: 20s
   certbot:
-    image: ghcr.io/hgnc/pgnc-certbot:latest
+    build: ./certbot
+    image: pgnc-certbot-local
     container_name: certbot
     profiles: ["ssl"]
-    volumes:
-      - ./certbot/auth-hook.sh:/auth-hook.sh:ro
-      - ./certbot/cleanup-hook.sh:/cleanup-hook.sh:ro
-      - ./certbot/gcp-key.json:/gcp-key.json:ro
-      - certbot-etc:/etc/letsencrypt/:rw
     environment:
-      MY_EMAIL: ${MY_EMAIL}
-    command:
-      - "certonly"  # Each argument as a separate string
-      - "--manual"
-      - "--preferred-challenges=dns"
-      - "--manual-auth-hook=/auth-hook.sh"
-      - "--manual-cleanup-hook=/cleanup-hook.sh"
-      - "--email=${MY_EMAIL}"
-      - "--agree-tos"
-      - "--non-interactive"
-      - "-d"
-      - "plant.genenames.org"
-      - "-d"
-      - "pgnc.genenames.org"
+      # Google Cloud Authentication
+      GOOGLE_APPLICATION_CREDENTIALS: /app/gcp-key.json
+      # Google Cloud Project Configuration
+      GCP_PROJECT: ${GCP_PROJECT}
+      GCP_DNS_ZONE: ${GCP_DNS_ZONE}
+      GCP_DNS_TTL: ${GCP_DNS_TTL:-300}
+      GCP_DNS_PROPAGATION_WAIT: ${GCP_DNS_PROPAGATION_WAIT:-60}
+      # Certbot Configuration
+      CERTBOT_EMAIL: ${MY_EMAIL}
+      DOMAIN_NAME: ${DOMAIN_NAME}
+    volumes:
+      # Mount service account key (read-only)
+      - ${GCP_KEY_FILE}:/app/gcp-key.json:ro
+      # Mount certificate storage (read-write)
+      - certbot-letsencrypt:/etc/letsencrypt
+      - certbot-logs:/var/log/letsencrypt
+    networks:
+      - pgnc-network
+    # Default command for certificate request
+    # Override this command when running manually
+    command: >
+      certonly
+      --dns-google
+      --dns-google-credentials /app/gcp-key.json
+      --dns-google-propagation-seconds ${GCP_DNS_PROPAGATION_WAIT:-60}
+      --email ${MY_EMAIL}
+      --agree-tos
+      --no-eff-email
+      --non-interactive
+      --expand
+      --domains ${DOMAIN_NAME}
   nginx:
     restart: always
     image: ghcr.io/hgnc/pgnc-nginx:latest
@@ -206,7 +219,7 @@ services:
       NGINX_PORT: ${NGINX_PORT}
       NGINX_SSL_PORT: ${NGINX_SSL_PORT}
     volumes:
-      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-letsencrypt:/etc/letsencrypt:ro
     depends_on:
       angular:
         condition: service_healthy
@@ -228,6 +241,8 @@ networks:
 volumes:
   pgnc-data:
   certbot-etc:
+  certbot-letsencrypt:
+  certbot-logs:
   python-input:
   python-output:
   solr-data:
