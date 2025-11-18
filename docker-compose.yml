@@ -219,6 +219,7 @@ services:
       NGINX_SSL_PORT: ${NGINX_SSL_PORT}
     volumes:
       - certbot-letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       angular:
         condition: service_healthy
