@@ -29,3 +29,4 @@ tasks.json
 tasks/
 
 .taskmaster/
+gcp-key.json
