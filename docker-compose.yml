@@ -206,6 +206,7 @@ services:
       --non-interactive
       --expand
       --domains ${DOMAIN_NAME}
+      --domains pgnc.genenames.org
   nginx:
     restart: always
     image: ghcr.io/hgnc/pgnc-nginx:latest
