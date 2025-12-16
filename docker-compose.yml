@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: docker/python.Dockerfile
-    image: pgnc-python-local
+    image: pgnc-python-local:latest
     networks:
       - pgnc-network
     environment:
@@ -60,7 +60,7 @@ services:
     build:
       context: .
       dockerfile: docker/solr.Dockerfile
-    image: pgnc-solr-local
+    image: pgnc-solr-local:latest
     shm_size: 256m
     networks:
       - pgnc-network
@@ -85,7 +85,7 @@ services:
     build:
       context: .
       dockerfile: docker/postgres.Dockerfile
-    image: pgnc-postgres-local
+    image: pgnc-postgres-local:local
     container_name: pgncdb
     restart: always
     networks:
